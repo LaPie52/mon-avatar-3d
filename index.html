@@ -77,7 +77,7 @@
 </div>
 
 <script type="module">
-    import { TalkingHead } from 'talkinghead';
+    import { tink, TalkingHead } from 'talkinghead';
     import { CreateMLCEngine } from '@mlc-ai/web-llm';
 
     let head;
@@ -89,7 +89,7 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, née le 21 octobre 1972 à Saïgon. Ton mari c'est Fredo (informaticien à l'AFPA). Vos enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Par défaut, tu parles à ton mari Fredo sur un ton ultra familier, cash, sensuel, amoureux et très complice ('mon chéri', 'tu vois', 'viens là'). Si la personne te dit qu'elle est un garçon ou une fille qui n'est pas Fredo, tu t'adaptes. Français parfait. Réponds en UNE seule phrase courte.";
+    const systemPrompt = "Tu es Carole, née le 21 octobre 1972 à Saïgon. Ton mari c'est Fredo (informaticien à l'AFPA). Vos enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Par défaut, tu parles à ton mari Fredo sur un ton ultra familier, cash, sensuel, amoureux et très complice ('mon chéri', 'tu vois'). Si la personne te dit qu'elle est un garçon ou une fille qui n'est pas Fredo, tu t'adaptes. Français parfait. Réponds en UNE seule phrase courte.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -97,8 +97,7 @@
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        // Recherche d'une voix féminine douce, naturelle ou de type Google/Microsoft online pour un son plus sexy et agréable
-        femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Denise') || v.name.includes('Celeste') || v.name.includes('Coralie') || v.name.includes('Google français') || v.name.includes('Natural') || v.name.includes('Julie'))) ||
+        femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Denise') || v.name.includes('Celeste') || v.name.includes('Google français') || v.name.includes('Natural') || v.name.includes('Julie'))) ||
                       voices.find(v => v.lang === 'fr-FR' && v.name.includes('Female')) ||
                       voices.find(v => v.lang === 'fr-FR') ||
                       voices.find(v => v.lang.startsWith('fr'));
@@ -113,15 +112,16 @@
         try {
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             
+            // CORRECTION RADICALE : On désactive les modules lipsync réseau pour forcer un mode visuel simple sans requêtes HTTP POST parasites
             head = new TalkingHead(container, {
                 cameraView: "upper",
-                lipsyncModules: ["en", "fr"]
+                lipsyncModules: [] 
             });
 
             await head.showAvatar({
                 url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
                 body: 'F',
-                avatarMood: 'seductive', // Changé l'humeur de l'avatar en mode séducteur/chaleureux
+                avatarMood: 'seductive',
                 lipsyncLang: 'fr'
             });
 
@@ -233,14 +233,17 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
-            
-            // PARAMÈTRES VOCAUX AJUSTÉS : 
-            // pitch à 0.92 pour une voix un peu plus grave, chaude et sensuelle
-            // rate à 1.25 pour un rythme plus rapide, vif et naturel
-            utterance.pitch = 0.92; 
-            utterance.rate = 1.25;  
+            utterance.pitch = 0.93; // Voie chaleureuse et féminine
+            utterance.rate = 1.2;   // Plus rapide et fluide
             
             if (femaleVoice) utterance.voice = femaleVoice;
+
+            // Animation de la bouche pendant que le navigateur parle
+            utterance.onboundary = (event) => {
+                if (event.name === 'word' && head) {
+                    head.speakText(spokenAnswer.substring(event.charIndex, event.charIndex + event.charLength));
+                }
+            };
 
             utterance.onend = () => {
                 if (isConversationActive) {
@@ -251,10 +254,6 @@
                     }, 300);
                 }
             };
-
-            head.speakText(spokenAnswer, { 
-                lipsyncLang: 'fr'
-            });
             
             window.speechSynthesis.speak(utterance);
         }
@@ -264,7 +263,6 @@
         try {
             chatHistory.push({ role: "user", content: prompt });
 
-            const reply = data => data; // placeholder
             const response = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
                 max_tokens: 45, 
