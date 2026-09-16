@@ -109,7 +109,6 @@
         localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
     });
 
-    // Sélection de la meilleure voix féminine fluide disponible
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
         femaleVoice = voices.find(v => v.lang.startsWith('fr') && (
@@ -118,8 +117,7 @@
             v.name.includes('Denise') || 
             v.name.includes('Eloise') || 
             v.name.includes('Celeste') || 
-            v.name.includes('Julie') || 
-            v.name.includes('Hortense')
+            v.name.includes('Julie')
         ));
 
         if (!femaleVoice) {
@@ -141,8 +139,9 @@
             cameraView: "upper"
         });
 
+        // Utilisation d'un modèle d'avatar féminin pré-existant et compatible directement depuis les assets de TalkingHead
         await head.showAvatar({
-            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/avaturn.glb",
+            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
             body: 'F',
             avatarMood: 'neutral'
         });
@@ -216,12 +215,12 @@
         };
     } else {
         statusText.style.color = "#ff5252";
-        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale (utilisez Chrome).";
+        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale (utilisez Chrome ou Edge).";
     }
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
@@ -249,8 +248,8 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
-                utterance.pitch = 1.05;
-                utterance.rate = 1.0;
+                utterance.pitch = 1.02;
+                utterance.rate = 0.98;
 
                 if (femaleVoice) {
                     utterance.voice = femaleVoice;
