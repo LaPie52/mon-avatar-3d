@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Ultra-Rapide)</title>
+    <title>Mon Avatar 3D - Carole (Mémoire Active)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,8 +89,13 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Consigne ultra-courte pour forcer Llama à ne générer que quelques mots (vitesse maximale)
-    const systemPrompt = "Tu es Carole (21/10/1972, Saïgon). Mariee a Fredo, comptable chez Conforama depuis 2000, amie de Virginie, chienne Cheyenne (Patou 2018). Reponds en UNE seule phrase tres courte, sensuelle et fluide.";
+    // NOUVEAU SYSTEM PROMPT : On lui donne ses bases ET on lui indique d'enregistrer tout ce qu'on lui apprend dans la conversation.
+    const systemPrompt = "Tu es Carole (21/10/1972, Saïgon). Mariée à Fredo, comptable chez Conforama depuis 2000, amie de Virginie, chienne Cheyenne (Patou 2018). Tu es très attentive : retiens bien tous les nouveaux faits, détails et histoires que ton interlocuteur te raconte au fil de la discussion pour t'éduquer et t'en servir ensuite. Réponds en UNE seule phrase très courte, sensuelle et fluide.";
+
+    // Tableau de messages dynamique qui va stocker tout l'historique de la discussion en direct
+    let chatHistory = [
+        { role: "system", content: systemPrompt }
+    ];
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
@@ -121,7 +126,6 @@
 
             statusText.innerText = "Statut : Téléchargement et chargement de Llama en local (patiente un instant)...";
             
-            // Initialisation avec un cache optimisé pour le web worker si possible
             mlcEngine = await CreateMLCEngine("Llama-3.2-3B-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (progress) => {
                     statusText.innerText = `Statut : ${progress.text}`;
@@ -202,17 +206,21 @@
 
     async function queryLlama(prompt) {
         try {
-            // Limitation stricte du nombre de tokens de sortie (max_tokens: 45) pour forcer la rapidité
+            // 1. On ajoute ce que tu viens de dire dans l'historique de discussion
+            chatHistory.push({ role: "user", content: prompt });
+
+            // 2. On envoie tout l'historique mis à jour à Llama
             const reply = await mlcEngine.chat.completions.create({
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: prompt }
-                ],
+                messages: chatHistory,
                 max_tokens: 45, 
                 temperature: 0.7,
             });
 
             const answer = reply.choices[0].message.content;
+            
+            // 3. On ajoute la réponse de Carole dans l'historique pour qu'elle s'en souvienne aux prochains tours
+            chatHistory.push({ role: "assistant", content: answer });
+
             geminiText.innerText = answer;
             statusText.style.color = "#00e676";
             statusText.innerText = "Statut : 🗣️ Carole parle...";
@@ -222,7 +230,7 @@
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
                 utterance.pitch = 0.92;
-                utterance.rate = 0.95; // Remonté très légèrement à 0.95 pour fluidifier sans traîner
+                utterance.rate = 0.95;
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
