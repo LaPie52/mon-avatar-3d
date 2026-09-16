@@ -83,13 +83,13 @@
         });
     </script>
 
-    <!-- URL corrigée vers modules/talkinghead.mjs -->
+    <!-- Importmap corrigé avec le dépôt officiel met4citizen/TalkingHead -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "talkinghead": "https://cdn.jsdelivr.net/gh/metaspook/talkinghead@main/modules/talkinghead.mjs"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/modules/talkinghead.mjs"
         }
     }
     </script>
@@ -129,7 +129,6 @@
 
     async function initAvatar() {
         head = new TalkingHead(container, {
-            ttsEndpoint: "https://code.responsivevoice.org/develop/getvoice.php",
             cameraView: "upper"
         });
 
