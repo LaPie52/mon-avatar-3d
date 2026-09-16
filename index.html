@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Mistral)</title>
+    <title>Mon Avatar 3D - Carole</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,8 +67,8 @@
 <div id="avatar-container"></div>
 
 <div class="controls">
-    <button id="startBtn" disabled>Chargement de Mistral en local...</button>
-    <p id="status">Statut : Initialisation du système...</p>
+    <button id="startBtn" disabled>Chargement du système...</button>
+    <p id="status">Statut : Initialisation...</p>
 
     <div class="hidden-boxes">
         <span id="userText">-</span>
@@ -89,7 +89,7 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, la femme de Fredo. Tu es née le vingt-et-un octobre mille neuf cent soixante-douze à Saïgon. Fredo est informaticien à l'AFPA. Vous avez deux enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère c'est Michelle (Mimi ou Mitch). Tu bosses comme comptable chez Conforama depuis l'an deux mille avec ta copine Virginie. À la maison, on a notre chienne Cheyenne (née en deux mille dix-huit). Tu parles à Fredo sur un ton STRICTEMENT FAMILIER, cash, complice, avec des expressions naturelles et amoureuses ('mon chéri', 'tu vois', 'nan mais sérieux'). Pas de politesse exagérée, tu parles comme une vraie femme à son mari. Français de France parfait. Réponds en UNE seule phrase courte.";
+    const systemPrompt = "Tu es Carole, la femme de Fredo. Née le 21 octobre 1972 à Saïgon. Fredo est informaticien à l'AFPA. Vos enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Tu parles à Fredo avec un ton ultra familier, cash, amoureux et complice ('mon chéri', 'tu vois', 'nan mais sérieux'). Pas de langue de bois ni de politesse guindée. Français parfait, direct. Réponds en UNE seule phrase courte.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -123,8 +123,9 @@
                 lipsyncLang: 'fr'
             });
 
-            statusText.innerText = "Statut : Téléchargement de Mistral en local (cela peut prendre quelques minutes au premier lancement)...";
+            statusText.innerText = "Statut : Téléchargement de Mistral-7B en local (patiente, c'est un gros fichier)...";
             
+            // UTILISATION DE LA VERSION OPTIMISÉE DE MISTRAL
             mlcEngine = await CreateMLCEngine("Mistral-7B-Instruct-v0.3-q4f16_1-MLC", {
                 initProgressCallback: (progress) => {
                     statusText.innerText = `Statut : ${progress.text}`;
@@ -132,7 +133,7 @@
             });
 
             statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : Carole (Mistral) est prête à discuter !";
+            statusText.innerText = "Statut : Carole (Mistral) est prête !";
             startBtn.disabled = false;
             startBtn.innerText = "🎙️ Démarrer la conversation";
 
@@ -149,7 +150,7 @@
     let isConversationActive = false;
 
     if (SpeechRecognition) {
-        recognition = new SpeechRecognition(); // Correction de l'espace manquant ici
+        recognition = new SpeechRecognition(); // SYNTAXE CORRIGÉE STRICTEMENT ICI
         recognition.lang = 'fr-FR';
         recognition.continuous = false;
         recognition.interimResults = false;
@@ -171,7 +172,7 @@
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
                 startBtn.innerText = "🎙️ Démarrer la conversation";
-                recognition.stop();
+                try { recognition.stop(); } catch (e) {}
                 window.speechSynthesis.cancel();
                 statusText.style.color = "#00e676";
                 statusText.innerText = "Statut : Conversation arrêtée.";
@@ -185,16 +186,31 @@
             }
         };
 
+        // GESTION PROpre DE LA COUPURE DU MICRO QUAND L'UTILISATEUR PARLE
         recognition.onresult = async (event) => {
             const transcript = event.results[0][0].transcript;
             userText.innerText = transcript;
             
+            // On stoppe net le micro pour qu'il arrête d'écouter pendant que l'IA traite et répond
+            try { recognition.stop(); } catch (e) {}
+
             statusText.innerText = "Statut : 🧠 Mistral réfléchit...";
             await queryMistral(transcript);
         };
         
         recognition.onerror = (event) => {
             if (isConversationActive && (event.error === 'no-match' || event.error === 'aborted')) {
+                setTimeout(() => {
+                    if (isConversationActive) {
+                        try { recognition.start(); } catch (e) {}
+                    }
+                }, 500);
+            }
+        };
+
+        recognition.onend = () => {
+            // Si la conversation est active mais que le micro s'est coupé tout seul sans qu'on parle, on le relance
+            if (isConversationActive && statusText.innerText.includes("écoute")) {
                 try { recognition.start(); } catch (e) {}
             }
         };
@@ -214,8 +230,8 @@
 
             const reply = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: 40, 
-                temperature: 0.8,
+                max_tokens: 45, 
+                temperature: 0.7,
             });
 
             let answer = reply.choices[0].message.content;
@@ -236,13 +252,14 @@
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
+                // Quand Carole a fini de parler, on relance le micro proprement
                 utterance.onend = () => {
                     if (isConversationActive) {
                         statusText.style.color = "#ffab00";
                         statusText.innerText = "Statut : 🎙️ Carole écoute...";
                         setTimeout(() => {
                             try { recognition.start(); } catch (e) {}
-                        }, 250);
+                        }, 400);
                     }
                 };
 
