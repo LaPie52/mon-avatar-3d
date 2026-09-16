@@ -190,7 +190,6 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        // Utilisation du modèle valide mis à jour
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -213,13 +212,40 @@
             statusText.style.color = "#00e676";
             statusText.innerText = "Statut : 🗣️ L'avatar parle...";
 
-            head.speakText(answer, {
-                lang: 'fr-FR',
-                onEnd: () => { 
-                    statusText.style.color = "#00e676";
-                    statusText.innerText = "Statut : Avatar prêt !"; 
+            // Synthèse vocale navigateur avec voix féminine
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stoppe la parole précédente
+                const utterance = new SpeechSynthesisUtterance(answer);
+                utterance.lang = 'fr-FR';
+
+                // Sélection d'une voix féminine française si disponible
+                const voices = window.speechSynthesis.getVoices();
+                const femaleVoice = voices.find(v => v.lang.includes('fr') && (v.name.includes('Google') || v.name.includes('Zira') || v.name.includes('Hortense') || v.name.includes('Julie') || v.name.toLowerCase().includes('female')));
+                if (femaleVoice) {
+                    utterance.voice = femaleVoice;
                 }
-            });
+
+                utterance.onend = () => {
+                    statusText.style.color = "#00e676";
+                    statusText.innerText = "Statut : Avatar prêt !";
+                };
+
+                // Fait parler l'avatar en même temps que le son du navigateur
+                head.speakText(answer, {
+                    lang: 'fr-FR',
+                    onEnd: () => {}
+                });
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                head.speakText(answer, {
+                    lang: 'fr-FR',
+                    onEnd: () => { 
+                        statusText.style.color = "#00e676";
+                        statusText.innerText = "Statut : Avatar prêt !"; 
+                    }
+                });
+            }
 
         } catch (err) {
             statusText.style.color = "#ff5252";
