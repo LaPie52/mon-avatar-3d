@@ -53,6 +53,7 @@
             border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.3s;
         }
         button:disabled { background-color: #444; cursor: not-allowed; }
         
@@ -140,7 +141,6 @@
             lipsyncModules: ["en", "fr"]
         });
 
-        // Utilisation du modèle d'avatar standard officiel garanti sans erreur 404
         await head.showAvatar({
             url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
             body: 'F',
@@ -151,7 +151,7 @@
         statusText.style.color = "#00e676";
         statusText.innerText = "Statut : Carole est prête !";
         startBtn.disabled = false;
-        startBtn.innerText = "🎙️ Parler à Carole";
+        startBtn.innerText = "🎙️ Démarrer la conversation";
     }
 
     initAvatar().catch(err => {
@@ -161,12 +161,12 @@
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
-    let isListening = false;
+    let isConversationActive = false;
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'fr-FR';
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = false;
 
         startBtn.addEventListener('click', () => {
@@ -184,40 +184,58 @@
                 window.speechSynthesis.resume();
             }
 
-            if (!isListening) {
+            if (!isConversationActive) {
+                isConversationActive = true;
+                startBtn.style.backgroundColor = "#dc3545";
+                startBtn.innerText = "🛑 Arrêter la conversation";
                 try {
                     recognition.start();
                 } catch (e) {
-                    console.log("Reconnaissance déjà active");
+                    console.log("Déjà actif");
                 }
+            } else {
+                isConversationActive = false;
+                startBtn.style.backgroundColor = "#0d6efd";
+                startBtn.innerText = "🎙️ Démarrer la conversation";
+                recognition.stop();
+                statusText.style.color = "#00e676";
+                statusText.innerText = "Statut : Conversation arrêtée.";
             }
         });
 
         recognition.onstart = () => {
-            isListening = true;
-            statusText.style.color = "#ffab00";
-            statusText.innerText = "Statut : 🎙️ Écoute en cours...";
+            if (isConversationActive) {
+                statusText.style.color = "#ffab00";
+                statusText.innerText = "Statut : 🎙️ Carole écoute...";
+            }
         };
 
         recognition.onresult = async (event) => {
-            const transcript = event.results[0][0].transcript;
+            const transcript = event.results[event.results.length - 1][0].transcript;
             userText.innerText = transcript;
+            
+            // Stoppe l'écoute pendant la réflexion/réponse pour éviter de s'entendre soi-même
+            recognition.stop();
             statusText.innerText = "Statut : 🧠 Carole réfléchit...";
+            
             await queryGemini(transcript);
         };
         
         recognition.onerror = (event) => {
-            isListening = false;
-            statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur micro : " + event.error;
+            console.log("Info micro :", event.error);
         };
 
+        // Relance automatique de l'écoute dès que la session se coupe, si la conversation est active
         recognition.onend = () => {
-            isListening = false;
+            if (isConversationActive) {
+                try {
+                    recognition.start();
+                } catch (e) {}
+            }
         };
     } else {
         statusText.style.color = "#ff5252";
-        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale (utilisez Chrome ou Edge).";
+        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale.";
     }
 
     async function queryGemini(prompt) {
@@ -258,13 +276,18 @@
                 }
 
                 utterance.onend = () => {
-                    statusText.style.color = "#00e676";
-                    statusText.innerText = "Statut : Carole est prête !";
+                    // Une fois que la voix du navigateur a fini, le micro se relancera via onend
                 };
 
                 head.speakText(answer, {
                     lipsyncLang: 'fr',
-                    onEnd: () => {}
+                    onEnd: () => {
+                        // Remet le statut en écoute lorsque l'avatar a fini de parler
+                        if (isConversationActive) {
+                            statusText.style.color = "#ffab00";
+                            statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                        }
+                    }
                 });
 
                 window.speechSynthesis.speak(utterance);
@@ -272,8 +295,10 @@
                 head.speakText(answer, {
                     lipsyncLang: 'fr',
                     onEnd: () => { 
-                        statusText.style.color = "#00e676";
-                        statusText.innerText = "Statut : Carole est prête !"; 
+                        if (isConversationActive) {
+                            statusText.style.color = "#ffab00";
+                            statusText.innerText = "Statut : 🎙️ Carole écoute..."; 
+                        }
                     }
                 });
             }
@@ -281,6 +306,10 @@
         } catch (err) {
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur Gemini : " + err.message;
+            // En cas d'erreur (ex: quota dépassé momentané), on relance quand même le micro pour ne pas bloquer
+            if (isConversationActive) {
+                setTimeout(() => { try { recognition.start(); } catch(e){} }, 3000);
+            }
         }
     }
 </script>
