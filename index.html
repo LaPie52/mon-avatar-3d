@@ -89,7 +89,8 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, née le 21 octobre 1972 à Saïgon. Ton mari est Fredo (informaticien à l'AFPA). Tes enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Tu t'adresses toujours à ton mari Fredo sur un ton très familier, cash, amoureux et complice ('mon chéri'). Reste strictement cohérente avec ces faits. Fais des phrases courtes, directes et naturelles en français.";
+    // Profil complet de Carole mis à jour avec précision
+    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Réponds UNIQUEMENT à ce que Fredo vient de dire, sans jamais inventer sa question ni jouer son rôle. Fais une seule phrase courte et directe.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -168,8 +169,7 @@
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
                 
-                // CORRECTION : On remplace "MMH" par une phrase 100% française et naturelle
-                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce qu'il y a ?");
+                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce qu'on mange ce soir ?");
             } else {
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
@@ -218,9 +218,8 @@
     function formatFrenchPronunciation(text) {
         return text
             .replace(/\bafpa\b/gi, "A. F. P. A.")
-            .replace(/\b1972\b/g, "mille neuf cent soixante-douze")
-            .replace(/\b2000\b/g, "deux mille")
-            .replace(/\b2018\b/g, "deux mille dix-huit");
+            .replace(/\b1er janvier 2000\b/gi, "premier janvier deux mille")
+            .replace(/\boctobre 2010\b/gi, "octobre deux mille dix");
     }
 
     function playCaroleSpeech(textToSpeak) {
@@ -258,11 +257,15 @@
 
             const response = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: 35, 
-                temperature: 0.4, 
+                max_tokens: 30, 
+                temperature: 0.3, 
             });
 
             let answer = response.choices[0].message.content;
+            
+            // Nettoyage de sécurité au cas où l'IA tenterait de simuler un dialogue
+            answer = answer.replace(/^(Fredo|Moi|Tu)\s*:.+?[.!?"']\s*/i, "").trim();
+
             chatHistory.push({ role: "assistant", content: answer });
 
             playCaroleSpeech(answer);
