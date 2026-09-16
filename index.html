@@ -214,7 +214,6 @@
             const transcript = event.results[event.results.length - 1][0].transcript;
             userText.innerText = transcript;
             
-            // Stoppe l'écoute pendant la réflexion/réponse pour éviter de s'entendre soi-même
             recognition.stop();
             statusText.innerText = "Statut : 🧠 Carole réfléchit...";
             
@@ -225,7 +224,6 @@
             console.log("Info micro :", event.error);
         };
 
-        // Relance automatique de l'écoute dès que la session se coupe, si la conversation est active
         recognition.onend = () => {
             if (isConversationActive) {
                 try {
@@ -240,7 +238,8 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Utilisation du modèle gemini-2.5-flash actif
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
@@ -275,14 +274,9 @@
                     utterance.voice = femaleVoice;
                 }
 
-                utterance.onend = () => {
-                    // Une fois que la voix du navigateur a fini, le micro se relancera via onend
-                };
-
                 head.speakText(answer, {
                     lipsyncLang: 'fr',
                     onEnd: () => {
-                        // Remet le statut en écoute lorsque l'avatar a fini de parler
                         if (isConversationActive) {
                             statusText.style.color = "#ffab00";
                             statusText.innerText = "Statut : 🎙️ Carole écoute...";
@@ -306,7 +300,6 @@
         } catch (err) {
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur Gemini : " + err.message;
-            // En cas d'erreur (ex: quota dépassé momentané), on relance quand même le micro pour ne pas bloquer
             if (isConversationActive) {
                 setTimeout(() => { try { recognition.start(); } catch(e){} }, 3000);
             }
