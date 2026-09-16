@@ -103,27 +103,23 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Récupérer la clé API si elle a déjà été saisie
     if (localStorage.getItem('gemini_api_key')) {
         apiKeyInput.value = localStorage.getItem('gemini_api_key');
     }
 
-    // Sauvegarder automatiquement la clé API lorsqu'on la tape
     apiKeyInput.addEventListener('input', () => {
         localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
     });
 
-    // 1. Charger l'avatar 3D
     async function initAvatar() {
-        head = new TalkingHead(container, {
-            ttsEndpoint: "https://code.responsivevoice.org/develop/getvoice.php",
-            cameraView: "upper"
-        });
-
-        // URL d'un avatar Ready Player Me
-        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb";
-
         try {
+            head = new TalkingHead(container, {
+                ttsEndpoint: "https://code.responsivevoice.org/develop/getvoice.php",
+                cameraView: "upper"
+            });
+
+            const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb";
+
             await head.showAvatar({
                 url: avatarUrl,
                 body: 'M',
@@ -134,13 +130,14 @@
             startBtn.innerText = "🎙️ Parler à l'avatar";
         } catch (error) {
             console.error(error);
-            statusText.innerText = "Erreur de chargement de l'avatar 3D.";
+            statusText.innerText = "Erreur de chargement 3D : " + error.message;
         }
     }
 
-    initAvatar();
+    initAvatar().catch(err => {
+        statusText.innerText = "Erreur script : " + err.message;
+    });
 
-    // 2. Écoute micro
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -163,14 +160,13 @@
             await queryGemini(transcript);
         };
 
-        recognition.onerror = () => {
-            statusText.innerText = "Erreur de micro ou écoute annulée.";
+        recognition.onerror = (e) => {
+            statusText.innerText = "Erreur micro : " + e.error;
         };
     } else {
         alert("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome ou Edge.");
     }
 
-    // 3. Appel Gemini + Parole de l'avatar
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -182,24 +178,28 @@
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
                     systemInstruction: {
-                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste naturel et très expressif." }]
+                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste naturel." }]
                     }
                 })
             });
 
             const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error.message || "Erreur API");
+            }
+
             const answer = data.candidates[0].content.parts[0].text;
             geminiText.innerText = answer;
             statusText.innerText = "Statut : 🗣️ L'avatar parle...";
 
-            // Faire parler l'avatar avec lip-sync
             head.speakText(answer, {
                 lang: 'fr-FR',
                 onEnd: () => { statusText.innerText = "Statut : Prêt"; }
             });
 
         } catch (err) {
-            statusText.innerText = "Erreur lors de la réponse de Gemini.";
+            statusText.innerText = "Erreur Gemini : " + err.message;
             console.error(err);
         }
     }
