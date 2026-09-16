@@ -66,25 +66,30 @@
         #status { font-weight: bold; margin: 15px 0; color: #ffab00; }
     </style>
 
-    <!-- Détecteur d'erreur immédiat -->
     <script>
         window.addEventListener('error', function(e) {
             var statusDiv = document.getElementById('status');
-            if(statusDiv) statusDiv.innerText = "❌ Erreur de chargement : " + e.message;
+            if(statusDiv) {
+                statusDiv.style.color = "#ff5252";
+                statusDiv.innerText = "❌ Erreur de chargement : " + e.message;
+            }
         });
         window.addEventListener('unhandledrejection', function(e) {
             var statusDiv = document.getElementById('status');
-            if(statusDiv) statusDiv.innerText = "❌ Erreur réseau / module : " + e.reason;
+            if(statusDiv) {
+                statusDiv.style.color = "#ff5252";
+                statusDiv.innerText = "❌ Erreur réseau / module : " + e.reason;
+            }
         });
     </script>
 
-    <!-- Importmap mis à jour avec des serveurs CDN plus stables -->
+    <!-- URL corrigée vers modules/talkinghead.mjs -->
     <script type="importmap">
     {
         "imports": {
             "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
             "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "talkinghead": "https://cdn.jsdelivr.net/gh/metaspook/talkinghead@main/talkinghead.mjs"
+            "talkinghead": "https://cdn.jsdelivr.net/gh/metaspook/talkinghead@main/modules/talkinghead.mjs"
         }
     }
     </script>
