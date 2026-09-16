@@ -53,9 +53,7 @@
             border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.2s;
         }
-        button:hover { background-color: #0b5ed7; }
         button:disabled { background-color: #444; cursor: not-allowed; }
         .box {
             background: #2b2b2b;
@@ -65,14 +63,27 @@
             text-align: left;
             font-size: 14px;
         }
-        #status { font-weight: bold; margin: 15px 0; color: #aaa; }
+        #status { font-weight: bold; margin: 15px 0; color: #ffab00; }
     </style>
 
+    <!-- Détecteur d'erreur immédiat -->
+    <script>
+        window.addEventListener('error', function(e) {
+            var statusDiv = document.getElementById('status');
+            if(statusDiv) statusDiv.innerText = "❌ Erreur de chargement : " + e.message;
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var statusDiv = document.getElementById('status');
+            if(statusDiv) statusDiv.innerText = "❌ Erreur réseau / module : " + e.reason;
+        });
+    </script>
+
+    <!-- Importmap mis à jour avec des serveurs CDN plus stables -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
             "talkinghead": "https://cdn.jsdelivr.net/gh/metaspook/talkinghead@main/talkinghead.mjs"
         }
     }
@@ -112,30 +123,28 @@
     });
 
     async function initAvatar() {
-        try {
-            head = new TalkingHead(container, {
-                ttsEndpoint: "https://code.responsivevoice.org/develop/getvoice.php",
-                cameraView: "upper"
-            });
+        head = new TalkingHead(container, {
+            ttsEndpoint: "https://code.responsivevoice.org/develop/getvoice.php",
+            cameraView: "upper"
+        });
 
-            const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb";
+        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb";
 
-            await head.showAvatar({
-                url: avatarUrl,
-                body: 'M',
-                avatarLipsyncModule: 'rpm'
-            });
-            statusText.innerText = "Statut : Avatar prêt !";
-            startBtn.disabled = false;
-            startBtn.innerText = "🎙️ Parler à l'avatar";
-        } catch (error) {
-            console.error(error);
-            statusText.innerText = "Erreur de chargement 3D : " + error.message;
-        }
+        await head.showAvatar({
+            url: avatarUrl,
+            body: 'M',
+            avatarLipsyncModule: 'rpm'
+        });
+
+        statusText.style.color = "#00e676";
+        statusText.innerText = "Statut : Avatar prêt !";
+        startBtn.disabled = false;
+        startBtn.innerText = "🎙️ Parler à l'avatar";
     }
 
     initAvatar().catch(err => {
-        statusText.innerText = "Erreur script : " + err.message;
+        statusText.style.color = "#ff5252";
+        statusText.innerText = "Erreur avatar : " + err.message;
     });
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -159,12 +168,6 @@
             statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
             await queryGemini(transcript);
         };
-
-        recognition.onerror = (e) => {
-            statusText.innerText = "Erreur micro : " + e.error;
-        };
-    } else {
-        alert("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome ou Edge.");
     }
 
     async function queryGemini(prompt) {
@@ -184,10 +187,7 @@
             });
 
             const data = await response.json();
-            
-            if (data.error) {
-                throw new Error(data.error.message || "Erreur API");
-            }
+            if (data.error) throw new Error(data.error.message);
 
             const answer = data.candidates[0].content.parts[0].text;
             geminiText.innerText = answer;
@@ -195,12 +195,12 @@
 
             head.speakText(answer, {
                 lang: 'fr-FR',
-                onEnd: () => { statusText.innerText = "Statut : Prêt"; }
+                onEnd: () => { statusText.innerText = "Statut : Avatar prêt !"; }
             });
 
         } catch (err) {
+            statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur Gemini : " + err.message;
-            console.error(err);
         }
     }
 </script>
