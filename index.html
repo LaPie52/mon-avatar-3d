@@ -66,23 +66,6 @@
         #status { font-weight: bold; margin: 15px 0; color: #ffab00; }
     </style>
 
-    <script>
-        window.addEventListener('error', function(e) {
-            var statusDiv = document.getElementById('status');
-            if(statusDiv) {
-                statusDiv.style.color = "#ff5252";
-                statusDiv.innerText = "❌ Erreur : " + e.message;
-            }
-        });
-        window.addEventListener('unhandledrejection', function(e) {
-            var statusDiv = document.getElementById('status');
-            if(statusDiv) {
-                statusDiv.style.color = "#ff5252";
-                statusDiv.innerText = "❌ Erreur réseau / avatar : " + e.reason;
-            }
-        });
-    </script>
-
     <script type="importmap">
     {
         "imports": {
@@ -131,7 +114,6 @@
             cameraView: "upper"
         });
 
-        // Utilisation directe du modèle 3D féminin hébergé en ligne
         await head.showAvatar({
             url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/avaturn.glb",
             body: 'F',
@@ -160,6 +142,12 @@
                 alert("Veuillez coller votre clé API Gemini !");
                 return;
             }
+            
+            // Débloque l'audio du navigateur au clic utilisateur
+            if (head && head.audioContext && head.audioContext.state === 'suspended') {
+                head.audioContext.resume();
+            }
+
             recognition.start();
             statusText.innerText = "Statut : 🎙️ Écoute en cours...";
         });
@@ -170,11 +158,19 @@
             statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
             await queryGemini(transcript);
         };
+        
+        recognition.onerror = (event) => {
+            statusText.style.color = "#ff5252";
+            statusText.innerText = "Erreur micro : " + event.error;
+        };
+    } else {
+        statusText.style.color = "#ff5252";
+        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale (utilisez Chrome).";
     }
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
