@@ -139,9 +139,9 @@
             cameraView: "upper"
         });
 
-        // Utilisation d'un modèle d'avatar féminin pré-existant et compatible directement depuis les assets de TalkingHead
+        // Utilisation du modèle officiel avec des traits asiatiques plus marqués
         await head.showAvatar({
-            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
+            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/asian.glb",
             body: 'F',
             avatarMood: 'neutral'
         });
@@ -220,7 +220,8 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        // Utilisation du modèle gemini-3.6-flash requis par l'API
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
