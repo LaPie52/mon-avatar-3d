@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Correctif Blocage Audio)</title>
+    <title>Mon Avatar 3D - Carole (Rapide & Familier)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,7 +89,8 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, une femme née le vingt-et-un octobre mille neuf cent soixante-douze à Saïgon. Tu es l'épouse de Fredo, qui est informaticien à l'AFPA. Vous avez deux enfants : Audrick (surnommé Kakou) et Alexia (surnommée Bibinou). Ta mère (la grand-mère maternelle) s'appelle Michelle, surnommée Mitch ou Mimi. Tu travailles comme comptable chez Conforama depuis l'an deux mille, et ta grande copine au travail s'appelle Virginie. À la maison, tu as une chienne Patou nommée Cheyenne (née en deux mille dix-huit). Tu t'adresses TOUJOURS à ton interlocuteur en le TUTOYANT avec une voix de femme chaleureuse, sensuelle et complice. Tu parles un français de France parfait, sans accent belge. Tu retiens tout ce qu'on te dit pour t'éduquer. Réponds en UNE seule phrase très courte.";
+    // NOUVEAU PROMPT : Ton familier, direct, sur le ton de la complicité du couple
+    const systemPrompt = "Tu es Carole, la femme de Fredo. Tu es née le vingt-et-un octobre mille neuf cent soixante-douze à Saïgon. Fredo est informaticien à l'AFPA. Vous avez deux enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère c'est Michelle (Mimi ou Mitch). Tu bosses comme comptable chez Conforama depuis l'an deux mille avec ta copine Virginie. À la maison, on a notre chienne Cheyenne (née en deux mille dix-huit). Tu parles à Fredo sur un ton STRICTEMENT FAMILIER, cash, complice, avec des tics de langage naturels et amoureux ('mon chéri', 'tu vois', 'nan mais sérieux'). Pas de politesse exagérée, tu parles comme une vraie femme à son mari. Français de France parfait. Réponds en UNE seule phrase courte.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -113,7 +114,7 @@
             head = new TalkingHead(container, {
                 cameraView: "full",
                 lipsyncModules: ["en", "fr"],
-                ttsEndpoint: "" // EMPÊCHE L'AVATAR DE CHERCHER UN SERVEUR DISTANT ET DÉBLOQUE LA PAROLE
+                ttsEndpoint: ""
             });
 
             await head.showAvatar({
@@ -132,13 +133,14 @@
             });
 
             statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : Carole et Llama sont prêts !";
+            statusText.innerText = "Statut : Carole est prête à discuter !";
             startBtn.disabled = false;
             startBtn.innerText = "🎙️ Démarrer la conversation";
 
         } catch (err) {
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur d'initialisation : " + err.message;
+流
         }
     }
 
@@ -214,8 +216,8 @@
 
             const reply = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: 45, 
-                temperature: 0.7,
+                max_tokens: 40, 
+                temperature: 0.8, // Légèrement augmenté pour plus de spontanéité
             });
 
             let answer = reply.choices[0].message.content;
@@ -231,23 +233,21 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(spokenAnswer);
                 utterance.lang = 'fr-FR';
-                utterance.pitch = 0.92;
-                utterance.rate = 0.95;
+                utterance.pitch = 0.98; // Un peu plus haut pour le dynamisme
+                utterance.rate = 1.15;  // MODIFIÉ : 1.15 pour qu'elle parle plus vite et de façon plus punchy
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
-                // On gère la fin de parole proprement via l'événement standard de la voix du navigateur
                 utterance.onend = () => {
                     if (isConversationActive) {
                         statusText.style.color = "#ffab00";
                         statusText.innerText = "Statut : 🎙️ Carole écoute...";
                         setTimeout(() => {
                             try { recognition.start(); } catch (e) {}
-                        }, 300);
+                        }, 250);
                     }
                 };
 
-                // On déclenche la bouche de l'avatar et la voix du navigateur en même temps
                 head.speakText(spokenAnswer, { lipsyncLang: 'fr' });
                 window.speechSynthesis.speak(utterance);
             }
