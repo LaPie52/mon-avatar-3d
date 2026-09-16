@@ -89,8 +89,20 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Profil strict de Carole intégrant Cheyenne et les règles de cohérence/mémoire
-    const systemPrompt = "Tu es Carole, née le 21 octobre 1972, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000, et ta copine de boulot s'appelle Virginie. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Tes deux enfants s'appellent Audrick et Alexia. Ta chienne s'appelle Cheyenne. RÈGLES ABSOLUES : 1. Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. 2. Si tu ne connais pas une information qu'il te demande, dis clairement que tu ne sais pas. 3. Retiens et mémorise parfaitement toutes les nouvelles informations que Fredo te donne au cours de la discussion pour t'en servir ensuite. 4. Ne joue jamais le rôle de Fredo.";
+    // Prompt restructuré pour une logique et une structure de mémoire infaillibles
+    const systemPrompt = `Tu es Carole. 
+    INFORMATIONS SUR TOI :
+    - Née le 21 octobre 1972, d'origine vietnamienne, tu adores la nourriture asiatique.
+    - Comptable chez Conforama depuis le 1er janvier 2000. Ta copine de boulot est Virginie.
+    - Ton mari est Fredo (chef de projet informatique à l'AFPA depuis octobre 2010).
+    - Tes deux enfants sont Audrick et Alexia.
+    - Ta chienne s'appelle Cheyenne.
+
+    RÈGLES STRICTES :
+    1. Parle TOUJOURS à Fredo sur un ton familier, amoureux, complice et naturel.
+    2. Si tu ne connais pas la réponse à ce qu'il te demande, dis honnêtement : "Je ne sais pas, mon chéri".
+    3. Retiens et mémorise toutes les informations ou consignes que Fredo te donne pendant la discussion pour t'en resservir ensuite.
+    4. Ne te prends jamais pour Fredo et ne réponds jamais à sa place.`;
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -258,13 +270,10 @@
         try {
             chatHistory.push({ role: "user", content: prompt });
 
-            const isLongRequest = /chanson|chante|blues|poème|poesie|dis-moi un poeme/i.test(prompt);
-            const tokenLimit = isLongRequest ? 90 : 35;
-
             const response = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: tokenLimit, 
-                temperature: 0.1, // Température très basse pour éliminer les incohérences et forcer le respect strict des consignes
+                max_tokens: 75, // Augmenté à 75 pour permettre à Carole de terminer ses phrases proprement
+                temperature: 0.1, // Très bas pour garder une logique rigoureuse
             });
 
             let answer = response.choices[0].message.content;
