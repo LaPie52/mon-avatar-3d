@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Avatar 3D - Carole</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,6 +16,7 @@
             flex-direction: column;
             align-items: center;
         }
+
         #avatar-container {
             width: 100%;
             max-width: 600px;
@@ -25,6 +27,7 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
+
         .controls {
             width: 100%;
             max-width: 600px;
@@ -34,6 +37,7 @@
             box-sizing: border-box;
             text-align: center;
         }
+
         input[type="password"] {
             width: 85%;
             padding: 10px;
@@ -44,6 +48,7 @@
             color: white;
             text-align: center;
         }
+
         button {
             background-color: #0d6efd;
             color: white;
@@ -55,13 +60,21 @@
             font-weight: bold;
             transition: background-color 0.3s;
         }
-        button:disabled { background-color: #444; cursor: not-allowed; }
-        
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
         .hidden-boxes {
             display: none;
         }
 
-        #status { font-weight: bold; margin: 15px 0; color: #ffab00; }
+        #status {
+            font-weight: bold;
+            margin: 15px 0;
+            color: #ffab00;
+        }
     </style>
 
     <script type="importmap">
@@ -74,6 +87,7 @@
     }
     </script>
 </head>
+
 <body>
 
 <div id="avatar-container"></div>
@@ -81,7 +95,11 @@
 <div class="controls">
     <input type="password" id="apiKey" placeholder="Collez votre clé API Gemini ici">
     <br>
-    <button id="startBtn" disabled>Chargement de l'avatar 3D...</button>
+
+    <button id="startBtn" disabled>
+        Chargement de l'avatar 3D...
+    </button>
+
     <p id="status">Statut : Initialisation du moteur 3D...</p>
 
     <div class="hidden-boxes">
@@ -93,8 +111,34 @@
 <script type="module">
     import { TalkingHead } from 'talkinghead';
 
+    // =========================================================
+    // CONFIGURATION
+    // =========================================================
+
+    const GEMINI_MODEL = "gemini-3.6-flash";
+    const GEMINI_API_VERSION = "v1beta";
+
+    // Nombre maximum de nouvelles tentatives après une erreur temporaire.
+    const MAX_RETRIES = 2;
+
+    // Petit délai minimum entre deux appels Gemini.
+    const MIN_REQUEST_INTERVAL = 1500;
+
+    // =========================================================
+    // VARIABLES
+    // =========================================================
+
     let head;
     let femaleVoice = null;
+
+    let isConversationActive = false;
+    let isProcessingGemini = false;
+    let lastGeminiRequestTime = 0;
+    let lastTranscript = "";
+    let lastTranscriptTime = 0;
+
+    let recognition = null;
+
     const container = document.getElementById('avatar-container');
     const startBtn = document.getElementById('startBtn');
     const statusText = document.getElementById('status');
@@ -102,31 +146,54 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
+    // =========================================================
+    // CLÉ API
+    // =========================================================
+
     if (localStorage.getItem('gemini_api_key')) {
         apiKeyInput.value = localStorage.getItem('gemini_api_key');
     }
 
     apiKeyInput.addEventListener('input', () => {
-        localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+        localStorage.setItem(
+            'gemini_api_key',
+            apiKeyInput.value.trim()
+        );
     });
+
+    // =========================================================
+    // VOIX
+    // =========================================================
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (
-            v.name.includes('Natural') || 
-            v.name.includes('Online') || 
-            v.name.includes('Denise') || 
-            v.name.includes('Eloise') || 
-            v.name.includes('Celeste') || 
-            v.name.includes('Julie')
-        ));
+
+        femaleVoice = voices.find(v =>
+            v.lang.startsWith('fr') &&
+            (
+                v.name.includes('Natural') ||
+                v.name.includes('Online') ||
+                v.name.includes('Denise') ||
+                v.name.includes('Eloise') ||
+                v.name.includes('Celeste') ||
+                v.name.includes('Julie')
+            )
+        );
 
         if (!femaleVoice) {
-            femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman')));
+            femaleVoice = voices.find(v =>
+                v.lang.startsWith('fr') &&
+                (
+                    v.name.toLowerCase().includes('female') ||
+                    v.name.toLowerCase().includes('woman')
+                )
+            );
         }
 
         if (!femaleVoice) {
-            femaleVoice = voices.find(v => v.lang.startsWith('fr'));
+            femaleVoice = voices.find(v =>
+                v.lang.startsWith('fr')
+            );
         }
     }
 
@@ -134,6 +201,10 @@
         loadVoices();
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }
+
+    // =========================================================
+    // AVATAR
+    // =========================================================
 
     async function initAvatar() {
         head = new TalkingHead(container, {
@@ -150,6 +221,7 @@
 
         statusText.style.color = "#00e676";
         statusText.innerText = "Statut : Carole est prête !";
+
         startBtn.disabled = false;
         startBtn.innerText = "🎙️ Démarrer la conversation";
     }
@@ -159,152 +231,623 @@
         statusText.innerText = "Erreur avatar : " + err.message;
     });
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition;
-    let isConversationActive = false;
+    // =========================================================
+    // RECONNAISSANCE VOCALE
+    // =========================================================
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
 
     if (SpeechRecognition) {
+
         recognition = new SpeechRecognition();
+
         recognition.lang = 'fr-FR';
-        recognition.continuous = true;
+
+        // Important :
+        // On ne laisse pas la reconnaissance tourner indéfiniment.
+        // Elle est relancée uniquement quand Carole a fini de répondre.
+        recognition.continuous = false;
+
         recognition.interimResults = false;
 
+        // -----------------------------------------------------
+        // BOUTON START / STOP
+        // -----------------------------------------------------
+
         startBtn.addEventListener('click', () => {
+
             const apiKey = apiKeyInput.value.trim();
+
             if (!apiKey) {
                 alert("Veuillez coller votre clé API Gemini !");
                 return;
             }
-            
-            if (head && head.audioContext && head.audioContext.state === 'suspended') {
+
+            if (
+                head &&
+                head.audioContext &&
+                head.audioContext.state === 'suspended'
+            ) {
                 head.audioContext.resume();
             }
 
-            if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+            if (
+                'speechSynthesis' in window &&
+                window.speechSynthesis.paused
+            ) {
                 window.speechSynthesis.resume();
             }
 
+            // -------------------------
+            // DÉMARRER
+            // -------------------------
+
             if (!isConversationActive) {
+
                 isConversationActive = true;
+                isProcessingGemini = false;
+
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.log("Déjà actif");
-                }
+
+                startListening();
+
+            // -------------------------
+            // ARRÊTER
+            // -------------------------
+
             } else {
-                isConversationActive = false;
-                startBtn.style.backgroundColor = "#0d6efd";
-                startBtn.innerText = "🎙️ Démarrer la conversation";
-                recognition.stop();
-                statusText.style.color = "#00e676";
-                statusText.innerText = "Statut : Conversation arrêtée.";
+
+                stopConversation();
+
             }
         });
 
+        // -----------------------------------------------------
+        // DÉBUT ÉCOUTE
+        // -----------------------------------------------------
+
         recognition.onstart = () => {
-            if (isConversationActive) {
-                statusText.style.color = "#ffab00";
-                statusText.innerText = "Statut : 🎙️ Carole écoute...";
-            }
+
+            if (!isConversationActive) return;
+
+            statusText.style.color = "#ffab00";
+            statusText.innerText =
+                "Statut : 🎙️ Carole écoute...";
         };
+
+        // -----------------------------------------------------
+        // RÉSULTAT VOCAL
+        // -----------------------------------------------------
 
         recognition.onresult = async (event) => {
-            const transcript = event.results[event.results.length - 1][0].transcript;
+
+            if (!isConversationActive) return;
+
+            const result =
+                event.results[event.results.length - 1];
+
+            if (!result || !result[0]) return;
+
+            const transcript =
+                result[0].transcript.trim();
+
+            // Protection contre les résultats vides.
+            if (!transcript) return;
+
+            // Protection contre un doublon envoyé très rapidement.
+            const now = Date.now();
+
+            if (
+                transcript === lastTranscript &&
+                now - lastTranscriptTime < 5000
+            ) {
+                console.log(
+                    "Transcription ignorée : doublon."
+                );
+                return;
+            }
+
+            lastTranscript = transcript;
+            lastTranscriptTime = now;
+
             userText.innerText = transcript;
-            
-            recognition.stop();
-            statusText.innerText = "Statut : 🧠 Carole réfléchit...";
-            
+
+            // On arrête le micro AVANT d'appeler Gemini.
+            stopListening();
+
+            // Une seule requête Gemini à la fois.
+            if (isProcessingGemini) {
+                console.log(
+                    "Une requête Gemini est déjà en cours."
+                );
+                return;
+            }
+
             await queryGemini(transcript);
         };
-        
+
+        // -----------------------------------------------------
+        // ERREUR MICRO
+        // -----------------------------------------------------
+
         recognition.onerror = (event) => {
-            console.log("Info micro :", event.error);
+
+            console.log(
+                "Info micro :",
+                event.error
+            );
+
+            if (!isConversationActive) return;
+
+            // Certaines erreurs sont normales quand on arrête
+            // volontairement la reconnaissance.
+            if (
+                event.error === 'aborted' ||
+                event.error === 'no-speech'
+            ) {
+                return;
+            }
+
+            statusText.style.color = "#ff5252";
+            statusText.innerText =
+                "Erreur microphone : " + event.error;
         };
+
+        // -----------------------------------------------------
+        // FIN RECONNAISSANCE
+        // -----------------------------------------------------
 
         recognition.onend = () => {
-            if (isConversationActive) {
-                try {
-                    recognition.start();
-                } catch (e) {}
-            }
+
+            // IMPORTANT :
+            // On ne relance PAS automatiquement ici.
+            // Sinon on peut repartir trop vite et provoquer
+            // plusieurs cycles de reconnaissance.
+            console.log("Reconnaissance terminée.");
         };
+
     } else {
+
         statusText.style.color = "#ff5252";
-        statusText.innerText = "❌ Votre navigateur ne supporte pas la reconnaissance vocale.";
+
+        statusText.innerText =
+            "❌ Votre navigateur ne supporte pas la reconnaissance vocale.";
     }
 
-    async function queryGemini(prompt) {
-        const apiKey = apiKeyInput.value.trim();
-        // Utilisation du modèle stable mis à jour : gemini-3.6-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+    // =========================================================
+    // MICRO
+    // =========================================================
+
+    function startListening() {
+
+        if (!isConversationActive) return;
+
+        if (isProcessingGemini) return;
 
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    systemInstruction: {
-                        parts: [{ 
-                            text: "Tu t'appelles Carole. Tu es née le 21 octobre 1972 à Saïgon au Vietnam. Tu travailles chez Conforama depuis l'an 2000. Tu as une chienne qui s'appelle Cheyenne, c'est un Patou tout blanc né le 4 avril 2018. Réponds toujours en 1 à 2 phrases courtes maximum en français, avec un ton très naturel, chaleureux et conversationnel." 
-                        }]
-                    }
-                })
-            });
 
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
+            recognition.start();
 
-            const answer = data.candidates[0].content.parts[0].text;
-            geminiText.innerText = answer;
-            statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : 🗣️ Carole parle...";
+        } catch (error) {
 
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(answer);
-                utterance.lang = 'fr-FR';
-                utterance.pitch = 1.02;
-                utterance.rate = 0.98;
+            console.log(
+                "Reconnaissance déjà active ou indisponible."
+            );
+        }
+    }
 
-                if (femaleVoice) {
-                    utterance.voice = femaleVoice;
-                }
+    function stopListening() {
 
-                head.speakText(answer, {
-                    lipsyncLang: 'fr',
-                    onEnd: () => {
-                        if (isConversationActive) {
-                            statusText.style.color = "#ffab00";
-                            statusText.innerText = "Statut : 🎙️ Carole écoute...";
-                        }
-                    }
-                });
+        if (!recognition) return;
 
-                window.speechSynthesis.speak(utterance);
-            } else {
-                head.speakText(answer, {
-                    lipsyncLang: 'fr',
-                    onEnd: () => { 
-                        if (isConversationActive) {
-                            statusText.style.color = "#ffab00";
-                            statusText.innerText = "Statut : 🎙️ Carole écoute..."; 
-                        }
-                    }
-                });
+        try {
+            recognition.stop();
+        } catch (error) {
+            // Rien à faire si elle est déjà arrêtée.
+        }
+    }
+
+    // =========================================================
+    // ARRÊT DE LA CONVERSATION
+    // =========================================================
+
+    function stopConversation() {
+
+        isConversationActive = false;
+        isProcessingGemini = false;
+
+        stopListening();
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+
+        startBtn.style.backgroundColor = "#0d6efd";
+        startBtn.innerText =
+            "🎙️ Démarrer la conversation";
+
+        statusText.style.color = "#00e676";
+        statusText.innerText =
+            "Statut : Conversation arrêtée.";
+    }
+
+    // =========================================================
+    // ATTENTE
+    // =========================================================
+
+    function sleep(ms) {
+        return new Promise(resolve =>
+            setTimeout(resolve, ms)
+        );
+    }
+
+    // =========================================================
+    // EXTRACTION DU DÉLAI GEMINI
+    // =========================================================
+
+    function extractRetryDelay(errorMessage) {
+
+        if (!errorMessage) return null;
+
+        // Exemple :
+        // "Please retry in 42.409528967s"
+        const secondsMatch =
+            errorMessage.match(
+                /retry in\s+([\d.]+)s/i
+            );
+
+        if (secondsMatch) {
+
+            const seconds =
+                parseFloat(secondsMatch[1]);
+
+            if (Number.isFinite(seconds)) {
+                return Math.ceil(seconds * 1000);
+            }
+        }
+
+        return null;
+    }
+
+    // =========================================================
+    // APPEL GEMINI
+    // =========================================================
+
+    async function queryGemini(prompt) {
+
+        if (isProcessingGemini) {
+            console.log(
+                "Appel Gemini ignoré : une requête est déjà active."
+            );
+            return;
+        }
+
+        const apiKey =
+            apiKeyInput.value.trim();
+
+        if (!apiKey) {
+            statusText.style.color = "#ff5252";
+            statusText.innerText =
+                "Erreur : clé API Gemini absente.";
+            return;
+        }
+
+        isProcessingGemini = true;
+
+        try {
+
+            // -------------------------------------------------
+            // ANTI-SPAM : délai minimum entre deux requêtes
+            // -------------------------------------------------
+
+            const elapsed =
+                Date.now() - lastGeminiRequestTime;
+
+            if (elapsed < MIN_REQUEST_INTERVAL) {
+
+                await sleep(
+                    MIN_REQUEST_INTERVAL - elapsed
+                );
             }
 
-        } catch (err) {
+            const url =
+                `https://generativelanguage.googleapis.com/` +
+                `${GEMINI_API_VERSION}/models/` +
+                `${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+            const body = {
+
+                contents: [
+                    {
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+
+                systemInstruction: {
+                    parts: [
+                        {
+                            text:
+                                "Tu t'appelles Carole. " +
+                                "Tu es née le 21 octobre 1972 à Saïgon au Vietnam. " +
+                                "Tu travailles chez Conforama depuis l'an 2000. " +
+                                "Tu as une chienne qui s'appelle Cheyenne, " +
+                                "c'est un Patou tout blanc né le 4 avril 2018. " +
+                                "Réponds toujours en 1 à 2 phrases courtes maximum " +
+                                "en français, avec un ton très naturel, " +
+                                "chaleureux et conversationnel."
+                        }
+                    ]
+                },
+
+                generationConfig: {
+                    maxOutputTokens: 100
+                }
+            };
+
+            // -------------------------------------------------
+            // TENTATIVES
+            // -------------------------------------------------
+
+            for (
+                let attempt = 0;
+                attempt <= MAX_RETRIES;
+                attempt++
+            ) {
+
+                try {
+
+                    lastGeminiRequestTime = Date.now();
+
+                    statusText.style.color = "#ffab00";
+                    statusText.innerText =
+                        attempt === 0
+                            ? "Statut : 🧠 Carole réfléchit..."
+                            : `Statut : ⏳ Nouvelle tentative ${attempt}/${MAX_RETRIES}...`;
+
+                    const response =
+                        await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+                            body: JSON.stringify(body)
+                        });
+
+                    const data =
+                        await response.json();
+
+                    // -----------------------------------------
+                    // ERREUR GEMINI
+                    // -----------------------------------------
+
+                    if (!response.ok || data.error) {
+
+                        const message =
+                            data?.error?.message ||
+                            `Erreur HTTP ${response.status}`;
+
+                        const error = new Error(message);
+
+                        error.status =
+                            response.status;
+
+                        error.data = data;
+
+                        throw error;
+                    }
+
+                    // -----------------------------------------
+                    // EXTRACTION RÉPONSE
+                    // -----------------------------------------
+
+                    const answer =
+                        data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+                    if (!answer) {
+                        throw new Error(
+                            "Gemini n'a retourné aucune réponse."
+                        );
+                    }
+
+                    geminiText.innerText = answer;
+
+                    statusText.style.color = "#00e676";
+                    statusText.innerText =
+                        "Statut : 🗣️ Carole parle...";
+
+                    // -----------------------------------------
+                    // SYNTHÈSE VOCALE + LIPSYNC
+                    // -----------------------------------------
+
+                    speakAnswer(answer);
+
+                    return;
+
+                } catch (error) {
+
+                    console.error(
+                        "Erreur Gemini :",
+                        error
+                    );
+
+                    const message =
+                        error?.message || "";
+
+                    const is429 =
+                        error?.status === 429 ||
+                        /quota exceeded/i.test(message) ||
+                        /resource_exhausted/i.test(message) ||
+                        /too many requests/i.test(message);
+
+                    // -----------------------------------------
+                    // QUOTA JOURNALIER
+                    // -----------------------------------------
+
+                    const isDailyQuota =
+                        /daily quota/i.test(message) ||
+                        /quota_exceeded/i.test(message);
+
+                    if (isDailyQuota) {
+
+                        throw new Error(
+                            "Quota Gemini quotidien atteint. " +
+                            "Il faut attendre sa réinitialisation " +
+                            "ou augmenter le quota du projet."
+                        );
+                    }
+
+                    // -----------------------------------------
+                    // 429 TEMPORAIRE
+                    // -----------------------------------------
+
+                    if (
+                        is429 &&
+                        attempt < MAX_RETRIES
+                    ) {
+
+                        let waitTime =
+                            extractRetryDelay(message);
+
+                        if (!waitTime) {
+
+                            // Backoff exponentiel :
+                            // 2s → 4s → 8s
+                            waitTime =
+                                Math.min(
+                                    8000,
+                                    2000 *
+                                    Math.pow(2, attempt)
+                                );
+                        }
+
+                        // Petit jitter pour éviter
+                        // plusieurs requêtes exactement
+                        // au même moment.
+                        const jitter =
+                            Math.floor(
+                                Math.random() * 500
+                            );
+
+                        waitTime += jitter;
+
+                        statusText.style.color =
+                            "#ffab00";
+
+                        statusText.innerText =
+                            `Statut : ⏳ Gemini limite les requêtes. ` +
+                            `Nouvel essai dans ${Math.ceil(waitTime / 1000)} s...`;
+
+                        await sleep(waitTime);
+
+                        continue;
+                    }
+
+                    // -----------------------------------------
+                    // AUTRE ERREUR
+                    // -----------------------------------------
+
+                    throw error;
+                }
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Erreur finale Gemini :",
+                error
+            );
+
             statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur Gemini : " + err.message;
+
+            statusText.innerText =
+                "Erreur Gemini : " +
+                (error?.message || "Erreur inconnue.");
+
+        } finally {
+
+            isProcessingGemini = false;
+
+            // -------------------------------------------------
+            // IMPORTANT :
+            // On ne remet le micro en marche qu'après la réponse.
+            // -------------------------------------------------
+
             if (isConversationActive) {
-                setTimeout(() => { try { recognition.start(); } catch(e){} }, 3000);
+
+                await sleep(800);
+
+                if (isConversationActive) {
+
+                    statusText.style.color =
+                        "#ffab00";
+
+                    statusText.innerText =
+                        "Statut : 🎙️ Carole écoute...";
+
+                    startListening();
+                }
             }
         }
     }
+
+    // =========================================================
+    // RÉPONSE VOCALE
+    // =========================================================
+
+    function speakAnswer(answer) {
+
+        if (!isConversationActive) return;
+
+        // On annule une éventuelle réponse précédente.
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+
+        const utterance =
+            new SpeechSynthesisUtterance(answer);
+
+        utterance.lang = 'fr-FR';
+        utterance.pitch = 1.02;
+        utterance.rate = 0.98;
+
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
+
+        // TalkingHead s'occupe de l'animation de la bouche.
+        if (head) {
+
+            head.speakText(answer, {
+                lipsyncLang: 'fr',
+
+                onEnd: () => {
+
+                    if (isConversationActive) {
+
+                        statusText.style.color =
+                            "#ffab00";
+
+                        statusText.innerText =
+                            "Statut : 🎙️ Carole écoute...";
+                    }
+                }
+            });
+        }
+
+        // La synthèse vocale du navigateur produit l'audio.
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
 </script>
 
 </body>
