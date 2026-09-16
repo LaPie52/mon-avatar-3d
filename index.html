@@ -71,19 +71,18 @@
             var statusDiv = document.getElementById('status');
             if(statusDiv) {
                 statusDiv.style.color = "#ff5252";
-                statusDiv.innerText = "❌ Erreur de chargement : " + e.message;
+                statusDiv.innerText = "❌ Erreur : " + e.message;
             }
         });
         window.addEventListener('unhandledrejection', function(e) {
             var statusDiv = document.getElementById('status');
             if(statusDiv) {
                 statusDiv.style.color = "#ff5252";
-                statusDiv.innerText = "❌ Erreur réseau / module : " + e.reason;
+                statusDiv.innerText = "❌ Erreur réseau / avatar : " + e.reason;
             }
         });
     </script>
 
-    <!-- Importmap corrigé avec le dépôt officiel met4citizen/TalkingHead -->
     <script type="importmap">
     {
         "imports": {
@@ -132,12 +131,13 @@
             cameraView: "upper"
         });
 
-        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb";
+        // URL complète avec paramètres d'expressions faciales
+        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
 
         await head.showAvatar({
             url: avatarUrl,
-            body: 'M',
-            avatarLipsyncModule: 'rpm'
+            body: 'F',
+            avatarMood: 'neutral'
         });
 
         statusText.style.color = "#00e676";
