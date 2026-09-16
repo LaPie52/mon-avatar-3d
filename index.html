@@ -77,7 +77,8 @@
 </div>
 
 <script type="module">
-    import { tink, TalkingHead } from 'talkinghead';
+    // CORRECTION : On importe uniquement TalkingHead (plus de 'tink' introuvable)
+    import { TalkingHead } from 'talkinghead';
     import { CreateMLCEngine } from '@mlc-ai/web-llm';
 
     let head;
@@ -112,7 +113,6 @@
         try {
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             
-            // CORRECTION RADICALE : On désactive les modules lipsync réseau pour forcer un mode visuel simple sans requêtes HTTP POST parasites
             head = new TalkingHead(container, {
                 cameraView: "upper",
                 lipsyncModules: [] 
@@ -233,17 +233,10 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
-            utterance.pitch = 0.93; // Voie chaleureuse et féminine
-            utterance.rate = 1.2;   // Plus rapide et fluide
+            utterance.pitch = 0.93; 
+            utterance.rate = 1.2;   
             
             if (femaleVoice) utterance.voice = femaleVoice;
-
-            // Animation de la bouche pendant que le navigateur parle
-            utterance.onboundary = (event) => {
-                if (event.name === 'word' && head) {
-                    head.speakText(spokenAnswer.substring(event.charIndex, event.charIndex + event.charLength));
-                }
-            };
 
             utterance.onend = () => {
                 if (isConversationActive) {
