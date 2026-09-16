@@ -89,7 +89,8 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, née le 21 octobre 1972 à Saïgon. Ton mari c'est Fredo (informaticien à l'AFPA). Vos enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Par défaut, tu parles à ton mari Fredo sur un ton ultra familier, cash, sensuel, amoureux et très complice ('mon chéri', 'tu vois'). Si la personne te dit qu'elle est un garçon ou une fille qui n'est pas Fredo, tu t'adaptes. Français parfait. Réponds en UNE seule phrase courte.";
+    // Prompt renforcé pour plus de cohérence et de clarté
+    const systemPrompt = "Tu es Carole, née le 21 octobre 1972 à Saïgon. Ton mari est Fredo (informaticien à l'AFPA). Tes enfants : Kakou (Audrick) et Bibinou (Alexia). Ta mère : Michelle (Mimi/Mitch). Tu es comptable chez Conforama depuis l'an 2000 avec ta copine Virginie. Votre chienne : Cheyenne (née en 2018). Tu t'adresses toujours à ton mari Fredo sur un ton très familier, cash, amoureux et complice ('mon chéri'). Reste strictement cohérente avec ces faits. Fais des phrases courtes, directes et naturelles en français.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -120,7 +121,7 @@
             await head.showAvatar({
                 url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
                 body: 'F',
-                avatarMood: 'neutral', // CORRIGÉ : 'neutral' au lieu de 'seductive'
+                avatarMood: 'neutral',
                 lipsyncLang: 'fr'
             });
 
@@ -168,7 +169,7 @@
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
                 
-                playCaroleSpeech("Mmh, t'es enfin là mon chéri... Viens m'embrasser.");
+                playCaroleSpeech("Ah, t'es là mon chéri ? Qu'est-ce qu'il y a ?");
             } else {
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
@@ -257,8 +258,8 @@
 
             const response = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: 45, 
-                temperature: 0.75,
+                max_tokens: 35,       // Limité à 35 tokens pour forcer des réponses courtes et percutantes
+                temperature: 0.4,     // Abaissé de 0.75 à 0.4 pour un comportement beaucoup plus logique et stable
             });
 
             let answer = response.choices[0].message.content;
