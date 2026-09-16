@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Llama Local)</title>
+    <title>Mon Avatar 3D - Carole (Voix Sensuelle & Fluide)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,16 +89,17 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Personnalité de Carole injectée dans le prompt système de Llama
-    const systemPrompt = "Tu t'appelles Carole. Tu es née le 21 octobre 1972 à Saïgon au Vietnam. Tu travailles chez Conforama depuis l'an 2000. Tu as une chienne qui s'appelle Cheyenne, c'est un Patou tout blanc né le 4 avril 2018. Réponds toujours en 1 à 2 phrases courtes maximum en français, avec un ton très naturel, chaleureux et conversationnel.";
+    const systemPrompt = "Tu t'appelles Carole. Tu es née le 21 octobre 1972 à Saïgon au Vietnam. Tu as un frère et une soeur. Ton mari s'appelle Fredo. Tu travailles en tant que comptable chez Conforama depuis l'an 2000, et ta grande copine au travail s'appelle Virginie. À la maison, tu as une chienne qui s'appelle Cheyenne, c'est un Patou tout blanc né le 4 avril 2018. Réponds toujours en 1 à 2 phrases courtes maximum en français, avec un ton très sensuel, doux, chaleureux et complice.";
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (
-            v.name.includes('Natural') || v.name.includes('Online') || 
-            v.name.includes('Denise') || v.name.includes('Eloise') || 
-            v.name.includes('Celeste') || v.name.includes('Julie')
-        )) || voices.find(v => v.lang.startsWith('fr'));
+        
+        // Recherche prioritaire de voix fluides / naturelles en français (Edge Natural, Google, etc.)
+        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Natural') || v.name.includes('Online'))) ||
+                      voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Denise') || v.name.includes('Eloise') || v.name.includes('Celeste') || v.name.includes('Julie'))) ||
+                      voices.find(v => v.lang.startsWith('fr'));
+                      
+        console.log("Voix sélectionnée pour Carole :", femaleVoice ? femaleVoice.name : "Par défaut");
     }
 
     if ('speechSynthesis' in window) {
@@ -108,7 +109,6 @@
 
     async function initSystem() {
         try {
-            // 1. Chargement de l'avatar 3D
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             head = new TalkingHead(container, {
                 cameraView: "upper",
@@ -122,7 +122,6 @@
                 lipsyncLang: 'fr'
             });
 
-            // 2. Chargement de Llama 3.2 (3B) en local via WebLLM
             statusText.innerText = "Statut : Téléchargement et chargement de Llama en local (patiente un instant)...";
             
             mlcEngine = await CreateMLCEngine("Llama-3.2-3B-Instruct-q4f16_1-MLC", {
@@ -205,7 +204,6 @@
 
     async function queryLlama(prompt) {
         try {
-            // Appel direct au modèle Llama local en mémoire
             const reply = await mlcEngine.chat.completions.create({
                 messages: [
                     { role: "system", content: systemPrompt },
@@ -222,31 +220,24 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
-                utterance.pitch = 1.02;
-                utterance.rate = 0.98;
+                
+                // PARAMÈTRES DE VOIX SENSUELLE ET FLUIDE :
+                utterance.pitch = 0.92; // Un ton légèrement plus grave, plus posé et chaleureux
+                utterance.rate = 0.90;  // Un débit plus lent et langoureux pour plus de fluidité et de sensualité
+                
                 if (femaleVoice) utterance.voice = femaleVoice;
 
                 head.speakText(answer, {
                     lipsyncLang: 'fr',
                     onEnd: () => {
                         if (isConversationActive) {
-                            statusText.style.color = "#ffab00";
-                            statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                            statusTest.style.color = "#ffab00";
+                            statusTest.innerText = "Statut : 🎙️ Carole écoute...";
                         }
                     }
                 });
 
                 window.speechSynthesis.speak(utterance);
-            } else {
-                head.speakText(answer, {
-                    lipsyncLang: 'fr',
-                    onEnd: () => { 
-                        if (isConversationActive) {
-                            statusText.style.color = "#ffab00";
-                            statusText.innerText = "Statut : 🎙️ Carole écoute..."; 
-                        }
-                    }
-                });
             }
 
         } catch (err) {
