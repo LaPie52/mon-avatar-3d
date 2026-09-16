@@ -136,14 +136,16 @@
 
     async function initAvatar() {
         head = new TalkingHead(container, {
-            cameraView: "upper"
+            cameraView: "upper",
+            lipsyncModules: ["en", "fr"]
         });
 
-        // Utilisation du modèle officiel avec des traits asiatiques plus marqués
+        // Utilisation du modèle d'avatar officiel valide pour éviter toute erreur 404
         await head.showAvatar({
-            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/asian.glb",
+            url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/avaturn.glb",
             body: 'F',
-            avatarMood: 'neutral'
+            avatarMood: 'neutral',
+            lipsyncLang: 'fr'
         });
 
         statusText.style.color = "#00e676";
@@ -220,7 +222,6 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        // Utilisation du modèle gemini-3.6-flash requis par l'API
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -262,14 +263,14 @@
                 };
 
                 head.speakText(answer, {
-                    lang: 'fr-FR',
+                    lipsyncLang: 'fr',
                     onEnd: () => {}
                 });
 
                 window.speechSynthesis.speak(utterance);
             } else {
                 head.speakText(answer, {
-                    lang: 'fr-FR',
+                    lipsyncLang: 'fr',
                     onEnd: () => { 
                         statusText.style.color = "#00e676";
                         statusText.innerText = "Statut : Carole est prête !"; 
