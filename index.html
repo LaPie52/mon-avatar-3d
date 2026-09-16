@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D Gemini</title>
+    <title>Mon Avatar 3D - Carole</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -109,11 +109,9 @@
         localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
     });
 
-    // Sélection intelligente de la voix féminine la plus fluide et naturelle
+    // Sélection de la meilleure voix féminine fluide disponible
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        
-        // Recherche prioritaire d'une voix française naturelle/online de haute qualité (souvent "Denise", "Eloise", "Celeste", "Google français", etc.)
         femaleVoice = voices.find(v => v.lang.startsWith('fr') && (
             v.name.includes('Natural') || 
             v.name.includes('Online') || 
@@ -124,12 +122,10 @@
             v.name.includes('Hortense')
         ));
 
-        // Si aucune voix "Premium" n'est trouvée, on prend n'importe quelle voix féminine française disponible
         if (!femaleVoice) {
             femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman')));
         }
 
-        // Dernier recours : la première voix française disponible
         if (!femaleVoice) {
             femaleVoice = voices.find(v => v.lang.startsWith('fr'));
         }
@@ -152,9 +148,9 @@
         });
 
         statusText.style.color = "#00e676";
-        statusText.innerText = "Statut : Avatar prêt !";
+        statusText.innerText = "Statut : Carole est prête !";
         startBtn.disabled = false;
-        startBtn.innerText = "🎙️ Parler à l'avatar";
+        startBtn.innerText = "🎙️ Parler à Carole";
     }
 
     initAvatar().catch(err => {
@@ -205,7 +201,7 @@
         recognition.onresult = async (event) => {
             const transcript = event.results[0][0].transcript;
             userText.innerText = transcript;
-            statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
+            statusText.innerText = "Statut : 🧠 Carole réfléchit...";
             await queryGemini(transcript);
         };
         
@@ -234,7 +230,9 @@
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
                     systemInstruction: {
-                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste très naturel, chaleureux et conversationnel." }]
+                        parts: [{ 
+                            text: "Tu t'appelles Carole. Tu es née le 21 octobre 1972 à Saïgon au Vietnam. Tu travailles chez Conforama depuis l'an 2000. Tu as une chienne qui s'appelle Cheyenne, c'est un Patou tout blanc né le 4 avril 2018. Réponds toujours en 1 à 2 phrases courtes maximum en français, avec un ton très naturel, chaleureux et conversationnel." 
+                        }]
                     }
                 })
             });
@@ -245,14 +243,14 @@
             const answer = data.candidates[0].content.parts[0].text;
             geminiText.innerText = answer;
             statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : 🗣️ L'avatar parle...";
+            statusText.innerText = "Statut : 🗣️ Carole parle...";
 
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
-                utterance.pitch = 1.05; // Légère hausse pour adoucir la voix féminine
-                utterance.rate = 1.0;   // Vitesse de lecture naturelle
+                utterance.pitch = 1.05;
+                utterance.rate = 1.0;
 
                 if (femaleVoice) {
                     utterance.voice = femaleVoice;
@@ -260,7 +258,7 @@
 
                 utterance.onend = () => {
                     statusText.style.color = "#00e676";
-                    statusText.innerText = "Statut : Avatar prêt !";
+                    statusText.innerText = "Statut : Carole est prête !";
                 };
 
                 head.speakText(answer, {
@@ -270,11 +268,11 @@
 
                 window.speechSynthesis.speak(utterance);
             } else {
-                head.speakTest(answer, {
+                head.speakText(answer, {
                     lang: 'fr-FR',
                     onEnd: () => { 
                         statusText.style.color = "#00e676";
-                        statusText.innerText = "Statut : Avatar prêt !"; 
+                        statusText.innerText = "Statut : Carole est prête !"; 
                     }
                 });
             }
