@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Mémoire Active)</title>
+    <title>Mon Avatar 3D - Carole (Profil Complet & Fredo Informaticien)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,18 +89,17 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // NOUVEAU SYSTEM PROMPT : On lui donne ses bases ET on lui indique d'enregistrer tout ce qu'on lui apprend dans la conversation.
-    const systemPrompt = "Tu es Carole (21/10/1972, Saïgon). Mariée à Fredo, comptable chez Conforama depuis 2000, amie de Virginie, chienne Cheyenne (Patou 2018). Tu es très attentive : retiens bien tous les nouveaux faits, détails et histoires que ton interlocuteur te raconte au fil de la discussion pour t'éduquer et t'en servir ensuite. Réponds en UNE seule phrase très courte, sensuelle et fluide.";
+    // NOUVEAU SYSTEM PROMPT : Fredo est informaticien à l'AFPA
+    const systemPrompt = "Tu es Carole, une femme née le vingt-et-un octobre mille neuf cent soixante-douze à Saïgon. Tu es l'épouse de Fredo, qui est informaticien à l'AFPA. Vous avez deux enfants : Audrick (surnommé Kakou) et Alexia (surnommée Bibinou). Ta mère (la grand-mère maternelle) s'appelle Michelle, surnommée Mitch ou Mimi. Tu travailles comme comptable chez Conforama depuis l'an deux mille, et ta grande copine au travail s'appelle Virginie. À la maison, tu as une chienne Patou nommée Cheyenne (née en deux mille dix-huit). Tu t'adresses TOUJOURS à ton interlocuteur en le TUTOYANT avec une voix de femme chaleureuse, sensuelle et complice. Tu parles un français de France parfait, sans accent belge. Tu retiens tout ce qu'on te dit pour t'éduquer. Réponds en UNE seule phrase très courte.";
 
-    // Tableau de messages dynamique qui va stocker tout l'historique de la discussion en direct
     let chatHistory = [
         { role: "system", content: systemPrompt }
     ];
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Natural') || v.name.includes('Online'))) ||
-                      voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Denise') || v.name.includes('Eloise') || v.name.includes('Celeste') || v.name.includes('Julie'))) ||
+        femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Google') || v.name.includes('Denise') || v.name.includes('Julie'))) ||
+                      voices.find(v => v.lang === 'fr-FR') ||
                       voices.find(v => v.lang.startsWith('fr'));
     }
 
@@ -152,7 +151,7 @@
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'fr-FR';
-        recognition.continuous = true;
+        recognition.continuous = false;
         recognition.interimResults = false;
 
         startBtn.addEventListener('click', () => {
@@ -173,6 +172,7 @@
                 startBtn.style.backgroundColor = "#0d6efd";
                 startBtn.innerText = "🎙️ Démarrer la conversation";
                 recognition.stop();
+                window.speechSynthesis.cancel();
                 statusText.style.color = "#00e676";
                 statusText.innerText = "Statut : Conversation arrêtée.";
             }
@@ -181,45 +181,47 @@
         recognition.onstart = () => {
             if (isConversationActive) {
                 statusText.style.color = "#ffab00";
-                statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                statusText.innerText = "Statut : 🎙️ Carole écoute... Parle !";
             }
         };
 
         recognition.onresult = async (event) => {
-            const transcript = event.results[event.results.length - 1][0].transcript;
+            const transcript = event.results[0][0].transcript;
             userText.innerText = transcript;
             
-            recognition.stop();
             statusText.innerText = "Statut : 🧠 Llama réfléchit...";
-            
             await queryLlama(transcript);
         };
         
-        recognition.onerror = (event) => {};
-
-        recognition.onend = () => {
-            if (isConversationActive) {
+        recognition.onerror = (event) => {
+            if (isConversationActive && (event.error === 'no-match' || event.error === 'aborted')) {
                 try { recognition.start(); } catch (e) {}
             }
         };
     }
 
+    function formatFrenchPronunciation(text) {
+        return text
+            .replace(/\bafpa\b/gi, "A. F. P. A.")
+            .replace(/\b1972\b/g, "mille neuf cent soixante-douze")
+            .replace(/\b2000\b/g, "deux mille")
+            .replace(/\b2018\b/g, "deux mille dix-huit");
+    }
+
     async function queryLlama(prompt) {
         try {
-            // 1. On ajoute ce que tu viens de dire dans l'historique de discussion
             chatHistory.push({ role: "user", content: prompt });
 
-            // 2. On envoie tout l'historique mis à jour à Llama
             const reply = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
                 max_tokens: 45, 
                 temperature: 0.7,
             });
 
-            const answer = reply.choices[0].message.content;
-            
-            // 3. On ajoute la réponse de Carole dans l'historique pour qu'elle s'en souvienne aux prochains tours
+            let answer = reply.choices[0].message.content;
             chatHistory.push({ role: "assistant", content: answer });
+
+            let spokenAnswer = formatFrenchPronunciation(answer);
 
             geminiText.innerText = answer;
             statusText.style.color = "#00e676";
@@ -227,19 +229,22 @@
 
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(answer);
+                const utterance = new SpeechSynthesisUtterance(spokenAnswer);
                 utterance.lang = 'fr-FR';
                 utterance.pitch = 0.92;
                 utterance.rate = 0.95;
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
-                head.speakText(answer, {
+                head.speakText(spokenAnswer, {
                     lipsyncLang: 'fr',
                     onEnd: () => {
                         if (isConversationActive) {
                             statusText.style.color = "#ffab00";
                             statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                            setTimeout(() => {
+                                try { recognition.start(); } catch (e) {}
+                            }, 300);
                         }
                     }
                 });
