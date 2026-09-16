@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Voix Sensuelle & Fluide)</title>
+    <title>Mon Avatar 3D - Carole (Ultra-Rapide)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,17 +89,14 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu t'appelles Carole. Tu es née le 21 octobre 1972 à Saïgon au Vietnam. Tu as un frère et une soeur. Ton mari s'appelle Fredo. Tu travailles en tant que comptable chez Conforama depuis l'an 2000, et ta grande copine au travail s'appelle Virginie. À la maison, tu as une chienne qui s'appelle Cheyenne, c'est un Patou tout blanc né le 4 avril 2018. Réponds toujours en 1 à 2 phrases courtes maximum en français, avec un ton très sensuel, doux, chaleureux et complice.";
+    // Consigne ultra-courte pour forcer Llama à ne générer que quelques mots (vitesse maximale)
+    const systemPrompt = "Tu es Carole (21/10/1972, Saïgon). Mariee a Fredo, comptable chez Conforama depuis 2000, amie de Virginie, chienne Cheyenne (Patou 2018). Reponds en UNE seule phrase tres courte, sensuelle et fluide.";
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        
-        // Recherche prioritaire de voix fluides / naturelles en français (Edge Natural, Google, etc.)
         femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Natural') || v.name.includes('Online'))) ||
                       voices.find(v => v.lang.startsWith('fr') && (v.name.includes('Denise') || v.name.includes('Eloise') || v.name.includes('Celeste') || v.name.includes('Julie'))) ||
                       voices.find(v => v.lang.startsWith('fr'));
-                      
-        console.log("Voix sélectionnée pour Carole :", femaleVoice ? femaleVoice.name : "Par défaut");
     }
 
     if ('speechSynthesis' in window) {
@@ -124,6 +121,7 @@
 
             statusText.innerText = "Statut : Téléchargement et chargement de Llama en local (patiente un instant)...";
             
+            // Initialisation avec un cache optimisé pour le web worker si possible
             mlcEngine = await CreateMLCEngine("Llama-3.2-3B-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (progress) => {
                     statusText.innerText = `Statut : ${progress.text}`;
@@ -188,7 +186,7 @@
             userText.innerText = transcript;
             
             recognition.stop();
-            statusText.innerText = "Statut : 🧠 Llama réfléchit localement...";
+            statusText.innerText = "Statut : 🧠 Llama réfléchit...";
             
             await queryLlama(transcript);
         };
@@ -204,11 +202,14 @@
 
     async function queryLlama(prompt) {
         try {
+            // Limitation stricte du nombre de tokens de sortie (max_tokens: 45) pour forcer la rapidité
             const reply = await mlcEngine.chat.completions.create({
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: prompt }
                 ],
+                max_tokens: 45, 
+                temperature: 0.7,
             });
 
             const answer = reply.choices[0].message.content;
@@ -220,10 +221,8 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
-                
-                // PARAMÈTRES DE VOIX SENSUELLE ET FLUIDE :
-                utterance.pitch = 0.92; // Un ton légèrement plus grave, plus posé et chaleureux
-                utterance.rate = 0.90;  // Un débit plus lent et langoureux pour plus de fluidité et de sensualité
+                utterance.pitch = 0.92;
+                utterance.rate = 0.95; // Remonté très légèrement à 0.95 pour fluidifier sans traîner
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
@@ -231,8 +230,8 @@
                     lipsyncLang: 'fr',
                     onEnd: () => {
                         if (isConversationActive) {
-                            statusTest.style.color = "#ffab00";
-                            statusTest.innerText = "Statut : 🎙️ Carole écoute...";
+                            statusText.style.color = "#ffab00";
+                            statusText.innerText = "Statut : 🎙️ Carole écoute...";
                         }
                     }
                 });
