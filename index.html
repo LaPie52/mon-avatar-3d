@@ -109,12 +109,29 @@
         localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
     });
 
-    // Charger les voix du navigateur pour trouver une voix de femme française
+    // Sélection intelligente de la voix féminine la plus fluide et naturelle
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.toLowerCase().includes('female') || v.name.includes('Julie') || v.name.includes('Hortense') || v.name.includes('Google') || v.name.includes('Denise')));
+        
+        // Recherche prioritaire d'une voix française naturelle/online de haute qualité (souvent "Denise", "Eloise", "Celeste", "Google français", etc.)
+        femaleVoice = voices.find(v => v.lang.startsWith('fr') && (
+            v.name.includes('Natural') || 
+            v.name.includes('Online') || 
+            v.name.includes('Denise') || 
+            v.name.includes('Eloise') || 
+            v.name.includes('Celeste') || 
+            v.name.includes('Julie') || 
+            v.name.includes('Hortense')
+        ));
+
+        // Si aucune voix "Premium" n'est trouvée, on prend n'importe quelle voix féminine française disponible
         if (!femaleVoice) {
-            femaleVoice = voices.find(v => v.lang.startsWith('fr')); // Fallback français général
+            femaleVoice = voices.find(v => v.lang.startsWith('fr') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman')));
+        }
+
+        // Dernier recours : la première voix française disponible
+        if (!femaleVoice) {
+            femaleVoice = voices.find(v => v.lang.startsWith('fr'));
         }
     }
 
@@ -217,7 +234,7 @@
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
                     systemInstruction: {
-                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste naturel." }]
+                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste très naturel, chaleureux et conversationnel." }]
                     }
                 })
             });
@@ -230,11 +247,13 @@
             statusText.style.color = "#00e676";
             statusText.innerText = "Statut : 🗣️ L'avatar parle...";
 
-            // Utilisation propre de la synthèse vocale avec synchronisation labiale et voix féminine
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(answer);
                 utterance.lang = 'fr-FR';
+                utterance.pitch = 1.05; // Légère hausse pour adoucir la voix féminine
+                utterance.rate = 1.0;   // Vitesse de lecture naturelle
+
                 if (femaleVoice) {
                     utterance.voice = femaleVoice;
                 }
@@ -244,7 +263,6 @@
                     statusText.innerText = "Statut : Avatar prêt !";
                 };
 
-                // On force TalkingHead à s'animer sur le texte en même temps que le son sort
                 head.speakText(answer, {
                     lang: 'fr-FR',
                     onEnd: () => {}
@@ -252,7 +270,7 @@
 
                 window.speechSynthesis.speak(utterance);
             } else {
-                head.speakText(answer, {
+                head.speakTest(answer, {
                     lang: 'fr-FR',
                     onEnd: () => { 
                         statusText.style.color = "#00e676";
@@ -261,7 +279,7 @@
                 });
             }
 
-        }ict (err) {
+        } catch (err) {
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur Gemini : " + err.message;
         }
