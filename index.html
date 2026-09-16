@@ -238,8 +238,8 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        // Utilisation du modèle gemini-2.5-flash actif
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        // Utilisation du modèle stable mis à jour : gemini-3.6-flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
