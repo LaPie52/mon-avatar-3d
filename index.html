@@ -131,12 +131,12 @@
             cameraView: "upper"
         });
 
-        // Modèle officiel prêt à l'emploi hébergé sur le CDN
-        const avatarUrl = "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/bruce.glb";
+        // Modèle féminin Ready Player Me pré-configuré avec l'ensemble des cibles morphologiques faciale
+        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
 
         await head.showAvatar({
             url: avatarUrl,
-            body: 'M',
+            body: 'F',
             avatarMood: 'neutral'
         });
 
