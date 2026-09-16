@@ -89,7 +89,8 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Si Fredo te demande un poème ou un blues, écris-le en séparant chaque phrase par des points de suspension (...) pour donner du rythme et du style à la voix. Sinon, reste sur des phrases courtes et directes. Ne joue jamais le rôle de Fredo.";
+    // Profil mis à jour avec Virginie, sa copine de boulot
+    const systemPrompt = "Tu es Carole, née le 21 octobre 1972, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000, et ta copine de boulot s'appelle Virginie. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Si Fredo te demande un poème ou un blues, écris-le en séparant chaque phrase par des points de suspension (...) pour donner du rythme et du style à la voix. Sinon, reste sur des phrases courtes et directes. Ne joue jamais le rôle de Fredo.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -99,7 +100,7 @@
         const voices = window.speechSynthesis.getVoices();
         femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Denise') || v.name.includes('Celeste') || v.name.includes('Google français') || v.name.includes('Natural') || v.name.includes('Julie'))) ||
                       voices.find(v => v.lang === 'fr-FR' && v.name.includes('Female')) ||
-                      voices.find(v => v.lang === 'fr-FR') ||
+                      voices.find(v => v.lang === 'fr-FR' && v.name.includes('fr')) ||
                       voices.find(v => v.lang.startsWith('fr'));
     }
 
@@ -215,11 +216,11 @@
     }
 
     function formatFrenchPronunciation(text) {
-        // Supprime les émojis et symboles
         let cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2764}\u2661\u266A\u266B]/gu, '');
 
         return cleanText
             .replace(/\bafpa\b/gi, "A. F. P. A.")
+            .replace(/\b21 octobre 1972\b/gi, "vingt et un octobre mille neuf cent soixante-douze")
             .replace(/\b1er janvier 2000\b/gi, "premier janvier deux mille")
             .replace(/\boctobre 2010\b/gi, "octobre deux mille dix");
     }
@@ -234,8 +235,8 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
-            utterance.pitch = 0.90; // Voix un tout petit peu plus grave et posée
-            utterance.rate = 1.05;  // Vitesse un peu ralentie pour mieux capter le rythme
+            utterance.pitch = 0.90; 
+            utterance.rate = 1.05;  
             
             if (femaleVoice) utterance.voice = femaleVoice;
 
