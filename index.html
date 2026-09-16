@@ -132,9 +132,14 @@
     });
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    let isListening = false;
+
     if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
+        recognition = new SpeechRecognition();
         recognition.lang = 'fr-FR';
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
         startBtn.addEventListener('click', () => {
             const apiKey = apiKeyInput.value.trim();
@@ -147,9 +152,20 @@
                 head.audioContext.resume();
             }
 
-            recognition.start();
-            statusText.innerText = "Statut : 🎙️ Écoute en cours...";
+            if (!isListening) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log("Reconnaissance déjà active");
+                }
+            }
         });
+
+        recognition.onstart = () => {
+            isListening = true;
+            statusText.style.color = "#ffab00";
+            statusText.innerText = "Statut : 🎙️ Écoute en cours...";
+        };
 
         recognition.onresult = async (event) => {
             const transcript = event.results[0][0].transcript;
@@ -159,8 +175,13 @@
         };
         
         recognition.onerror = (event) => {
+            isListening = false;
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur micro : " + event.error;
+        };
+
+        recognition.onend = () => {
+            isListening = false;
         };
     } else {
         statusText.style.color = "#ff5252";
@@ -169,7 +190,7 @@
 
     async function queryGemini(prompt) {
         const apiKey = apiKeyInput.value.trim();
-        // Utilisation du modèle actuel mis à jour
+        // Utilisation du modèle valide mis à jour
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -189,11 +210,15 @@
 
             const answer = data.candidates[0].content.parts[0].text;
             geminiText.innerText = answer;
+            statusText.style.color = "#00e676";
             statusText.innerText = "Statut : 🗣️ L'avatar parle...";
 
             head.speakText(answer, {
                 lang: 'fr-FR',
-                onEnd: () => { statusText.innerText = "Statut : Avatar prêt !"; }
+                onEnd: () => { 
+                    statusText.style.color = "#00e676";
+                    statusText.innerText = "Statut : Avatar prêt !"; 
+                }
             });
 
         } catch (err) {
