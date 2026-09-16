@@ -89,7 +89,7 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Si Fredo te demande de chanter un blues, de fredonner ou de lui faire un poème, lâche-toi et fais-le avec amour. Sinon, reste sur des phrases courtes et directes. Ne joue jamais le rôle de Fredo.";
+    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Si Fredo te demande un poème ou un blues, écris-le en séparant chaque phrase par des points de suspension (...) pour donner du rythme et du style à la voix. Sinon, reste sur des phrases courtes et directes. Ne joue jamais le rôle de Fredo.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -168,7 +168,7 @@
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
                 
-                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce que tu veux qu'on se raconte ?");
+                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce qu'on se raconte ?");
             } else {
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
@@ -215,7 +215,7 @@
     }
 
     function formatFrenchPronunciation(text) {
-        // Nettoyage des émojis et symboles graphiques pour éviter qu'ils ne soient prononcés (ex: ❤️ lu "cœur")
+        // Supprime les émojis et symboles
         let cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2764}\u2661\u266A\u266B]/gu, '');
 
         return cleanText
@@ -234,8 +234,8 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
-            utterance.pitch = 0.93; 
-            utterance.rate = 1.15;   
+            utterance.pitch = 0.90; // Voix un tout petit peu plus grave et posée
+            utterance.rate = 1.05;  // Vitesse un peu ralentie pour mieux capter le rythme
             
             if (femaleVoice) utterance.voice = femaleVoice;
 
