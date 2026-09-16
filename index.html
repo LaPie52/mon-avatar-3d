@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Profil Complet & Fredo Informaticien)</title>
+    <title>Mon Avatar 3D - Carole (Correctif Blocage Audio)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +18,7 @@
         #avatar-container {
             width: 100%;
             max-width: 600px;
-            height: 420px;
+            height: 500px;
             background: #1e1e1e;
             border-radius: 12px;
             overflow: hidden;
@@ -89,7 +89,6 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // NOUVEAU SYSTEM PROMPT : Fredo est informaticien à l'AFPA
     const systemPrompt = "Tu es Carole, une femme née le vingt-et-un octobre mille neuf cent soixante-douze à Saïgon. Tu es l'épouse de Fredo, qui est informaticien à l'AFPA. Vous avez deux enfants : Audrick (surnommé Kakou) et Alexia (surnommée Bibinou). Ta mère (la grand-mère maternelle) s'appelle Michelle, surnommée Mitch ou Mimi. Tu travailles comme comptable chez Conforama depuis l'an deux mille, et ta grande copine au travail s'appelle Virginie. À la maison, tu as une chienne Patou nommée Cheyenne (née en deux mille dix-huit). Tu t'adresses TOUJOURS à ton interlocuteur en le TUTOYANT avec une voix de femme chaleureuse, sensuelle et complice. Tu parles un français de France parfait, sans accent belge. Tu retiens tout ce qu'on te dit pour t'éduquer. Réponds en UNE seule phrase très courte.";
 
     let chatHistory = [
@@ -112,8 +111,9 @@
         try {
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             head = new TalkingHead(container, {
-                cameraView: "upper",
-                lipsyncModules: ["en", "fr"]
+                cameraView: "full",
+                lipsyncModules: ["en", "fr"],
+                ttsEndpoint: "" // EMPÊCHE L'AVATAR DE CHERCHER UN SERVEUR DISTANT ET DÉBLOQUE LA PAROLE
             });
 
             await head.showAvatar({
@@ -236,19 +236,19 @@
                 
                 if (femaleVoice) utterance.voice = femaleVoice;
 
-                head.speakText(spokenAnswer, {
-                    lipsyncLang: 'fr',
-                    onEnd: () => {
-                        if (isConversationActive) {
-                            statusText.style.color = "#ffab00";
-                            statusText.innerText = "Statut : 🎙️ Carole écoute...";
-                            setTimeout(() => {
-                                try { recognition.start(); } catch (e) {}
-                            }, 300);
-                        }
+                // On gère la fin de parole proprement via l'événement standard de la voix du navigateur
+                utterance.onend = () => {
+                    if (isConversationActive) {
+                        statusText.style.color = "#ffab00";
+                        statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                        setTimeout(() => {
+                            try { recognition.start(); } catch (e) {}
+                        }, 300);
                     }
-                });
+                };
 
+                // On déclenche la bouche de l'avatar et la voix du navigateur en même temps
+                head.speakText(spokenAnswer, { lipsyncLang: 'fr' });
                 window.speechSynthesis.speak(utterance);
             }
 
