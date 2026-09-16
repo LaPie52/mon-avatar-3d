@@ -131,8 +131,8 @@
             cameraView: "upper"
         });
 
-        // URL complète avec paramètres d'expressions faciales
-        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
+        // Utilisation du fichier local déposé dans le dépôt GitHub
+        const avatarUrl = "./avatar.glb";
 
         await head.showAvatar({
             url: avatarUrl,
