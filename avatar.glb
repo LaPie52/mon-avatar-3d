@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Avatar 3D Gemini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #avatar-container {
+            width: 100%;
+            max-width: 600px;
+            height: 420px;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .controls {
+            width: 100%;
+            max-width: 600px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        input[type="password"] {
+            width: 85%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #2b2b2b;
+            color: white;
+            text-align: center;
+        }
+        button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:disabled { background-color: #444; cursor: not-allowed; }
+        .box {
+            background: #2b2b2b;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        #status { font-weight: bold; margin: 15px 0; color: #ffab00; }
+    </style>
+
+    <script>
+        window.addEventListener('error', function(e) {
+            var statusDiv = document.getElementById('status');
+            if(statusDiv) {
+                statusDiv.style.color = "#ff5252";
+                statusDiv.innerText = "❌ Erreur : " + e.message;
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var statusDiv = document.getElementById('status');
+            if(statusDiv) {
+                statusDiv.style.color = "#ff5252";
+                statusDiv.innerText = "❌ Erreur réseau / avatar : " + e.reason;
+            }
+        });
+    </script>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/modules/talkinghead.mjs"
+        }
+    }
+    </script>
+</head>
+<body>
+
+<div id="avatar-container"></div>
+
+<div class="controls">
+    <input type="password" id="apiKey" placeholder="Collez votre clé API Gemini ici">
+    <br>
+    <button id="startBtn" disabled>Chargement de l'avatar 3D...</button>
+    <p id="status">Statut : Initialisation du moteur 3D...</p>
+
+    <div class="box"><strong>Vous :</strong> <span id="userText">-</span></div>
+    <div class="box"><strong>Gemini :</strong> <span id="geminiText">-</span></div>
+</div>
+
+<script type="module">
+    import { TalkingHead } from 'talkinghead';
+
+    let head;
+    const container = document.getElementById('avatar-container');
+    const startBtn = document.getElementById('startBtn');
+    const statusText = document.getElementById('status');
+    const apiKeyInput = document.getElementById('apiKey');
+    const userText = document.getElementById('userText');
+    const geminiText = document.getElementById('geminiText');
+
+    if (localStorage.getItem('gemini_api_key')) {
+        apiKeyInput.value = localStorage.getItem('gemini_api_key');
+    }
+
+    apiKeyInput.addEventListener('input', () => {
+        localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+    });
+
+    async function initAvatar() {
+        head = new TalkingHead(container, {
+            cameraView: "upper"
+        });
+
+        // URL complète avec paramètres d'expressions faciales
+        const avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7e3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
+
+        await head.showAvatar({
+            url: avatarUrl,
+            body: 'F',
+            avatarMood: 'neutral'
+        });
+
+        statusText.style.color = "#00e676";
+        statusText.innerText = "Statut : Avatar prêt !";
+        startBtn.disabled = false;
+        startBtn.innerText = "🎙️ Parler à l'avatar";
+    }
+
+    initAvatar().catch(err => {
+        statusText.style.color = "#ff5252";
+        statusText.innerText = "Erreur avatar : " + err.message;
+    });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'fr-FR';
+
+        startBtn.addEventListener('click', () => {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                alert("Veuillez coller votre clé API Gemini !");
+                return;
+            }
+            recognition.start();
+            statusText.innerText = "Statut : 🎙️ Écoute en cours...";
+        });
+
+        recognition.onresult = async (event) => {
+            const transcript = event.results[0][0].transcript;
+            userText.innerText = transcript;
+            statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
+            await queryGemini(transcript);
+        };
+    }
+
+    async function queryGemini(prompt) {
+        const apiKey = apiKeyInput.value.trim();
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: {
+                        parts: [{ text: "Réponds toujours en 1 à 2 phrases courtes maximum en français. Reste naturel." }]
+                    }
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+
+            const answer = data.candidates[0].content.parts[0].text;
+            geminiText.innerText = answer;
+            statusText.innerText = "Statut : 🗣️ L'avatar parle...";
+
+            head.speakText(answer, {
+                lang: 'fr-FR',
+                onEnd: () => { statusText.innerText = "Statut : Avatar prêt !"; }
+            });
+
+        } catch (err) {
+            statusText.style.color = "#ff5252";
+            statusText.innerText = "Erreur Gemini : " + err.message;
+        }
+    }
+</script>
+
+</body>
+</html>
