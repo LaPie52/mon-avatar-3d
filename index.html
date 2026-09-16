@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole (Mistral & Lipsync Fix)</title>
+    <title>Mon Avatar 3D - Carole (Mistral)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -149,7 +149,7 @@
     let isConversationActive = false;
 
     if (SpeechRecognition) {
-        recognition = newSpeechRecognition();
+        recognition = new SpeechRecognition(); // Correction de l'espace manquant ici
         recognition.lang = 'fr-FR';
         recognition.continuous = false;
         recognition.interimResults = false;
@@ -210,7 +210,6 @@
 
     async function queryMistral(prompt) {
         try {
-            chatHistory.print ? null : null;
             chatHistory.push({ role: "user", content: prompt });
 
             const reply = await mlcEngine.chat.completions.create({
@@ -247,9 +246,6 @@
                     }
                 };
 
-                // CORRECTION : On demande à TalkingHead d'animer les lèvres 
-                // en lui envoyant le texte avec un volume audio à 0 (pour ne pas doubler le son),
-                // pendant que le navigateur lit la vraie voix.
                 head.speakText(spokenAnswer, { 
                     lipsyncLang: 'fr',
                     audioVolume: 0 
