@@ -89,8 +89,8 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Profil complet de Carole mis à jour avec précision
-    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Réponds UNIQUEMENT à ce que Fredo vient de dire, sans jamais inventer sa question ni jouer son rôle. Fais une seule phrase courte et directe.";
+    // Profil mis à jour pour lui permettre de chanter ou faire des poèmes sur demande
+    const systemPrompt = "Tu es Carole, d'origine vietnamienne, et tu adores la nourriture asiatique. Tu es comptable chez Conforama depuis le 1er janvier 2000. Ton mari est Fredo, chef de projet informatique à l'AFPA depuis octobre 2010. Vos deux enfants s'appellent Alexia et Audrick. RÈGLE ABSOLUE : Tu t'adresses toujours à Fredo sur un ton familier, amoureux et complice. Si Fredo te demande de chanter un blues, de fredonner ou de lui faire un poème, lâche-toi et fais-le avec amour. Sinon, reste sur des phrases courtes et directes. Ne joue jamais le rôle de Fredo.";
 
     let chatHistory = [
         { role: "system", content: systemPrompt }
@@ -169,7 +169,7 @@
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
                 
-                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce qu'on mange ce soir ?");
+                playCaroleSpeech("Ah, te voilà enfin mon chéri ! Qu'est-ce que tu veux qu'on se raconte ?");
             } else {
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
@@ -233,7 +233,7 @@
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
             utterance.pitch = 0.93; 
-            utterance.rate = 1.2;   
+            utterance.rate = 1.15;   
             
             if (femaleVoice) utterance.voice = femaleVoice;
 
@@ -255,15 +255,19 @@
         try {
             chatHistory.push({ role: "user", content: prompt });
 
+            // On autorise un peu plus de tokens si tu lui demandes une chanson ou un poème
+            const isLongRequest = /chanson|chante|blues|poème|poesie|dis-moi un poeme/i.test(prompt);
+            const tokenLimit = isLongRequest ? 90 : 35;
+
             const response = await mlcEngine.chat.completions.create({
                 messages: chatHistory,
-                max_tokens: 30, 
-                temperature: 0.3, 
+                max_tokens: tokenLimit, 
+                temperature: 0.5, 
             });
 
             let answer = response.choices[0].message.content;
             
-            // Nettoyage de sécurité au cas où l'IA tenterait de simuler un dialogue
+            // Nettoyage de sécurité
             answer = answer.replace(/^(Fredo|Moi|Tu)\s*:.+?[.!?"']\s*/i, "").trim();
 
             chatHistory.push({ role: "assistant", content: answer });
