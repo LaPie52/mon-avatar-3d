@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carole & Gemini</title>
+    <title>Carole & Gemini - Backend Sécurisé</title>
     <link rel="icon" href="data:,">
     <style>
         body {
@@ -93,6 +93,9 @@
 <script type="module">
     import { TalkingHead } from 'talkinghead';
 
+    // Ton URL Worker Cloudflare sécurisée
+    const WORKER_URL = "https://carole-backend.fredbonneteau.workers.dev";
+
     let head;
     let femaleVoice = null;
     const container = document.getElementById('avatar-container');
@@ -100,15 +103,6 @@
     const sendBtn = document.getElementById('sendBtn');
     const textInput = document.getElementById('textInput');
     const statusText = document.getElementById('status');
-
-    let GEMINI_API_KEY = localStorage.getItem('carole_gemini_key');
-
-    if (!GEMINI_API_KEY) {
-        GEMINI_API_KEY = prompt("Entre ta clé API Google Gemini :");
-        if (GEMINI_API_KEY) {
-            localStorage.setItem('carole_gemini_key', GEMINI_API_KEY.trim());
-        }
-    }
 
     const systemInstruction = `Tu es Carole, née le 21 octobre 1972 à Saïgon. Comptable chez Conforama, tu habites à Voulangis avec ton mari Fredo. 
     RÈGLES ABSOLUES :
@@ -134,11 +128,6 @@
 
     async function initSystem() {
         try {
-            if (!GEMINI_API_KEY) {
-                statusText.innerText = "Erreur : Clé API manquante.";
-                return;
-            }
-
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             
             head = new TalkingHead(container, {
@@ -160,7 +149,7 @@
 
         } catch (err) {
             statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur initialisation : " + err.message;
+            statusText.innerText = "Erreur : " + err.message;
             console.error(err);
         }
     }
@@ -203,7 +192,7 @@
             statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
             await queryGemini(transcript);
         };
-        
+
         recognition.onerror = () => {
             if (isConversationActive) {
                 setTimeout(() => { try { recognition.start(); } catch (e) {} }, 1000);
@@ -229,9 +218,7 @@
     });
 
     textInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendBtn.click();
-        }
+        if (e.key === 'Enter') sendBtn.click();
     });
 
     function formatText(text) {
@@ -270,28 +257,20 @@
         chatHistory.push({ role: "user", parts: [{ text: promptText }] });
 
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-            const response = await fetch(url, {
+            const response = await fetch(WORKER_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: { parts: [{ text: systemInstruction }] },
-                    contents: chatHistory,
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 60
-                    }
+                    systemInstruction: systemInstruction,
+                    chatHistory: chatHistory
                 })
             });
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error?.message || `HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
             if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) {
-                throw new Error("Réponse vide ou invalide de l'API.");
+                throw new Error("Réponse invalide reçue du backend.");
             }
 
             const answer = data.candidates[0].content.parts[0].text.trim();
@@ -300,7 +279,7 @@
             playCaroleSpeech(answer);
 
         } catch (error) {
-            console.error("Erreur Gemini :", error);
+            console.error("Erreur Backend :", error);
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur : " + error.message;
             chatHistory.pop();
