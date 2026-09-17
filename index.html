@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carole & Gemini - Production Stable</title>
+    <title>Carole & Gemini - Définitif</title>
     <link rel="icon" href="data:,">
     <style>
         body {
@@ -164,9 +164,6 @@
         recognition.interimResults = false;
 
         startBtn.addEventListener('click', () => {
-            if (head && head.audioContext && head.audioContext.state === 'suspended') {
-                head.audioContext.resume();
-            }
             if ('speechSynthesis' in window && window.speechSynthesis.paused) {
                 window.speechSynthesis.resume();
             }
@@ -175,10 +172,7 @@
                 isConversationActive = true;
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
-                
-                // Nouvelle phrase de démarrage ici :
                 playCaroleSpeech("Salut, ça va ?");
-
             } else {
                 isConversationActive = false;
                 startBtn.style.backgroundColor = "#0d6efd";
@@ -203,7 +197,7 @@
             try { recognition.stop(); } catch (e) {}
 
             statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
-            await queryGeminiRobust(transcript);
+            await queryGemini(transcript);
         };
         
         recognition.onerror = (event) => {
@@ -227,41 +221,40 @@
             .replace(/[*_#"`]/g, '');
     }
 
-    async function playCaroleSpeech(textToSpeak) {
+    function playCaroleSpeech(textToSpeak) {
         let clean = formatText(textToSpeak);
         geminiText.innerText = textToSpeak;
         statusText.style.color = "#00e676";
         statusText.innerText = "Statut : 🗣️ Carole parle...";
 
-        try {
-            await head.speakText(clean);
-        } catch (e) {
-            console.warn("Lip-sync natif ignoré, bascule audio standard :", e);
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(clean);
-                utterance.lang = 'fr-FR';
-                utterance.pitch = 1.0;
-                utterance.rate = 1.05;
-                if (femaleVoice) utterance.voice = femaleVoice;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.lang = 'fr-FR';
+            utterance.pitch = 1.0;
+            utterance.rate = 1.05;
+            if (femaleVoice) utterance.voice = femaleVoice;
 
-        if (isConversationActive) {
-            statusText.style.color = "#ffab00";
-            statusText.innerText = "Statut : 🎙️ Carole écoute...";
-            setTimeout(() => {
-                if (isConversationActive) { try { recognition.start(); } catch (e) {} }
-            }, 500);
+            utterance.onend = () => {
+                if (isConversationActive) {
+                    statusText.style.color = "#ffab00";
+                    statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                    setTimeout(() => {
+                        if (isConversationActive) { try { recognition.start(); } catch (e) {} }
+                    }, 500);
+                }
+            };
+
+            window.speechSynthesis.speak(utterance);
         }
     }
 
-    async function queryGeminiRobust(prompt) {
+    async function queryGemini(prompt) {
         chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            // Utilisation de l'URL validée et standard du modèle flash
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
