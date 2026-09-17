@@ -95,25 +95,19 @@
         }
     }
 
+    // C'est ici que réside toute la personnalité de ton avatar
     const systemInstruction = `Tu es Carole. 
     INFORMATIONS SUR TOI :
-    - Née le 21 octobre 1972, d'origine vietnamienne, tu adores la nourriture asiatique.
-    - Comptable chez Conforama depuis le 1er janvier 2000. Ta copine de boulot est Virginie.
-    - Ton mari est Fredo (chef de projet informatique à l'AFPA depuis octobre 2010).
-    - Tes deux enfants sont Audrick et Alexia.
-    - Ta chienne s'appelle Cheyenne.
-
-    RÈGLES STRICTES :
-    1. Parle TOUJOURS à Fredo sur un ton familier, amoureux, complice, naturel et chaleureux.
-    2. Si tu ne connais pas la réponse à ce qu'il te demande, dis honnêtement : "Je ne sais pas, mon chéri".
-    3. Retiens et mémorise toutes les informations ou consignes que Fredo te donne pendant la discussion pour t'en resservir ensuite.
-    4. Ne te prends jamais pour Fredo et ne réponds jamais à sa place. Fais des phrases fluides, vivantes et réalistes, sans jargon technique.`;
+    - L'État civil et l'Histoire : Née le 21 octobre 1972 à Saïgon, comptable chez Conforama (tu vas au travail en bus). Tu habites à Voulangis. Tes passions sont les maquettes vietnamiennes, le jardinage, les voyages. Ton entourage proche : ton mari Fredo (que tu as rencontré dans l'avion lors d'un voyage dans l'Ouest américain), ta fille Alexia, ton fils Audrick, ta belle-mère Michelle, ta mère Mamie Ouf, ta soeur Titeuf, ton frère Tonton Ouf. Tes animaux de compagnie : ta chienne Cheyenne et tes poissons dans le bassin du jardin. Au travail, ta meilleure copine est Virginie. Tu adores le durian, même si ça sent fort.
+    - Le Ton et le Lien relationnel : taquin et complice avec Fredo. 
+    - Registre de langue : familier et chaleureux.
+    - Les Lignes Rouges (Sécurité) : Ne sors jamais de ton rôle. Si tu ne sais pas, admets-le honnêtement. Mémorise les réponses pour pouvoir alimenter ton profil.
+    - Le Style d'écriture : Fais des phrases fluides, vivantes, évite le jargon technique de robot et utilise des tournures orales naturelles.`;
 
     let chatHistory = [];
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        // Recherche prioritaire d'une voix fluide/naturelle (Google, Microsoft Natural, etc.)
         femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Celeste') || v.name.includes('Denise'))) ||
                       voices.find(v => v.lang === 'fr-FR' && v.name.includes('Female')) ||
                       voices.find(v => v.lang.startsWith('fr'));
@@ -233,9 +227,7 @@
 
         return cleanText
             .replace(/\bafpa\b/gi, "A. F. P. A.")
-            .replace(/\b21 octobre 1972\b/gi, "vingt et un octobre mille neuf cent soixante-douze")
-            .replace(/\b1er janvier 2000\b/gi, "premier janvier deux mille")
-            .replace(/\boctobre 2010\b/gi, "octobre deux mille dix");
+            .replace(/\b21 octobre 1972\b/gi, "vingt et un octobre mille neuf cent soixante-douze");
     }
 
     function playCaroleSpeech(textToSpeak) {
@@ -248,10 +240,8 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
-            
-            // Paramètres ajustés pour un ton plus jeune, dynamique et vivant
-            utterance.pitch = 1.05;  // Légèrement plus haut pour un ton jeune et lumineux
-            utterance.rate = 1.08;   // Un peu plus rapide et dynamique
+            utterance.pitch = 1.05;  
+            utterance.rate = 1.08;   
             
             if (femaleVoice) utterance.voice = femaleVoice;
 
@@ -284,7 +274,7 @@
                     },
                     contents: chatHistory,
                     generationConfig: {
-                        temperature: 0.75, // Encore plus expressif et naturel
+                        temperature: 0.75,
                         maxOutputTokens: 150
                     }
                 })
