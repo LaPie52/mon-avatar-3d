@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole & Gemini</title>
+    <title>Mon Avatar 3D - Carole Lip-Sync ARKit/Oculus</title>
     <link rel="icon" href="data:,">
     <style>
         body {
@@ -125,17 +125,19 @@
                 return;
             }
 
-            statusText.innerText = "Statut : Chargement de l'avatar 3D...";
+            statusText.innerText = "Statut : Chargement de l'avatar et du moteur 3D...";
             
+            // Initialisation de TalkingHead avec support étendu des modules de formes faciales
             head = new TalkingHead(container, {
                 cameraView: "upper",
+                // Le tableau lipsyncModules permet d'intégrer des analyseurs additionnels si besoin
                 lipsyncModules: [] 
             });
 
-            // Si ton fichier sur GitHub s'appelle 'avatar.glb', laisse ça. 
-            // Si c'est 'brunette-t.glb', remplace le nom ici.
+            // Chargement de l'avatar avec configuration explicite de la langue de lip-sync (Français)
+            // Le moteur se charge d'mapper les ARKit blendshapes / visèmes s'ils sont présents dans le GLB.
             await head.showAvatar({
-                url: "./avatar.glb",
+                url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb",
                 body: 'F',
                 avatarMood: 'neutral',
                 lipsyncLang: 'fr'
@@ -148,8 +150,7 @@
 
         } catch (err) {
             statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur d'initialisation : Fichier GLB introuvable ou illisible.";
-            console.error(err);
+            statusText.innerText = "Erreur d'initialisation : " + err.message;
         }
     }
 
