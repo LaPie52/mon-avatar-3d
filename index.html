@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole & Gemini</title>
+    <title>Mon Avatar 3D - Kafka & Gemini</title>
     <link rel="icon" href="data:,">
     <style>
         body {
@@ -90,7 +90,7 @@
     let GEMINI_API_KEY = localStorage.getItem('carole_gemini_key');
 
     if (!GEMINI_API_KEY) {
-        GEMINI_API_KEY = prompt("Entre ta clé API Google Gemini pour activer Carole :");
+        GEMINI_API_KEY = prompt("Entre ta clé API Google Gemini pour activer Kafka :");
         if (GEMINI_API_KEY) {
             localStorage.setItem('carole_gemini_key', GEMINI_API_KEY.trim());
         }
@@ -125,23 +125,23 @@
                 return;
             }
 
-            statusText.innerText = "Statut : Chargement de l'avatar 3D...";
+            statusText.innerText = "Statut : Chargement de l'avatar Kafka...";
             
             head = new TalkingHead(container, {
                 cameraView: "upper",
                 lipsyncModules: [] 
             });
 
-            // Chargement de ton avatar local brunette-t.glb
+            // Chargement de l'avatar Kafka depuis le CDN officiel
             await head.showAvatar({
-                url: "./brunette-t.glb",
+                url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/kafka.glb",
                 body: 'F',
                 avatarMood: 'neutral',
                 lipsyncLang: 'fr'
             });
 
             statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : Carole est prête !";
+            statusText.innerText = "Statut : Kafka est prête !";
             startBtn.disabled = false;
             startBtn.innerText = "🎙️ Démarrer la conversation";
 
@@ -190,7 +190,7 @@
         recognition.onstart = () => {
             if (isConversationActive) {
                 statusText.style.color = "#ffab00";
-                statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                statusText.innerText = "Statut : 🎙️ Kafka écoute...";
             }
         };
 
@@ -228,7 +228,7 @@
         let clean = formatText(textToSpeak);
         geminiText.innerText = textToSpeak;
         statusText.style.color = "#00e676";
-        statusText.innerText = "Statut : 🗣️ Carole parle...";
+        statusText.innerText = "Statut : 🗣️ Kafka parle...";
 
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -242,7 +242,7 @@
             utterance.onend = () => {
                 if (isConversationActive) {
                     statusText.style.color = "#ffab00";
-                    statusText.innerText = "Statut : 🎙️ Carole écoute...";
+                    statusText.innerText = "Statut : 🎙️ Kafka écoute...";
                     setTimeout(() => {
                         if (isConversationActive) { try { recognition.start(); } catch (e) {} }
                     }, 500);
