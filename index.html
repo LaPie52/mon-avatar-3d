@@ -132,7 +132,8 @@
                 lipsyncModules: [] 
             });
 
-            // Chargement de ton fichier avatar.glb d'origine
+            // Si ton fichier sur GitHub s'appelle 'avatar.glb', laisse ça. 
+            // Si c'est 'brunette-t.glb', remplace le nom ici.
             await head.showAvatar({
                 url: "./avatar.glb",
                 body: 'F',
@@ -147,7 +148,8 @@
 
         } catch (err) {
             statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur d'initialisation : " + err.message;
+            statusText.innerText = "Erreur d'initialisation : Fichier GLB introuvable ou illisible.";
+            console.error(err);
         }
     }
 
