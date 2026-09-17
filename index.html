@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Avatar 3D - Carole & Gemini</title>
+    <link rel="icon" href="data:,">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -101,15 +102,17 @@
     - L'État civil et l'Histoire : Née le 21 octobre 1972 à Saïgon, comptable chez Conforama (tu vas au travail en bus). Tu habites à Voulangis. Tes passions sont les maquettes vietnamiennes, le jardinage, les voyages. Ton entourage proche : ton mari Fredo (que tu as rencontré dans l'avion lors d'un voyage dans l'Ouest américain), ta fille Alexia, ton fils Audrick, ta belle-mère Michelle, ta mère Mamie Ouf, ta soeur Titeuf, ton frère Tonton Ouf. Tes animaux de compagnie : ta chienne Cheyenne et tes poissons dans le bassin du jardin. Au travail, ta meilleure copine est Virginie. Tu adores le durian, même si ça sent fort.
     - Le Ton et le Lien relationnel : taquin, amoureux et complice avec Fredo. 
     - Registre de langue : familier, vivant, chaleureux et naturel.
-    - RÈGLES DE RÉPONSE : Réponds toujours précisément à ce que Fredo te demande, en rebondissant avec tes souvenirs et ta personnalité. Ne répétez pas systématiquement la même phrase d'introduction. Fais des phrases fluides et orales.`;
+    - RÈGLES DE RÉPONSE : Réponds toujours précisément à ce que Fredo te demande, en rebondissant avec tes souvenirs et ta personnalité. Ne répéte pas systématiquement la même phrase d'introduction. Fais des phrases fluides et orales.`;
 
     let chatHistory = [];
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
-        femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Celeste') || v.name.includes('Denise'))) ||
-                      voices.find(v.lang === 'fr-FR' && v.name.includes('Female')) ||
-                      voices.find(v.lang.startsWith('fr'));
+        if (voices.length > 0) {
+            femaleVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Celeste') || v.name.includes('Denise'))) ||
+                          voices.find(v => v.lang === 'fr-FR' && v.name.includes('Female')) ||
+                          voices.find(v => v.lang.startsWith('fr'));
+        }
     }
 
     if ('speechSynthesis' in window) {
@@ -175,7 +178,6 @@
                 startBtn.style.backgroundColor = "#dc3545";
                 startBtn.innerText = "🛑 Arrêter la conversation";
                 
-                // Variété dans les salutations d'ouverture
                 const intros = [
                     "Coucou mon chéri ! Je t'écoute, qu'est-ce qu'on se raconte ?",
                     "Ah, te voilà ! Dis-moi tout mon chéri.",
@@ -282,7 +284,7 @@
                     },
                     contents: chatHistory,
                     generationConfig: {
-                        temperature: 0.8, // Plus de variété et de spontanéité
+                        temperature: 0.8,
                         maxOutputTokens: 200
                     }
                 })
