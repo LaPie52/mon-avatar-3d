@@ -125,16 +125,16 @@
                 return;
             }
 
-            statusText.innerText = "Statut : Chargement de l'avatar...";
+            statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             
             head = new TalkingHead(container, {
                 cameraView: "upper",
                 lipsyncModules: [] 
             });
 
-            // Utilisation du modèle de démo valide 'blonde.glb'
+            // Chargement de ton fichier avatar.glb d'origine
             await head.showAvatar({
-                url: "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/blonde.glb",
+                url: "./avatar.glb",
                 body: 'F',
                 avatarMood: 'neutral',
                 lipsyncLang: 'fr'
