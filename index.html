@@ -161,12 +161,12 @@
         } catch (err) {
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur : " + err.message;
+            console.error(err);
         }
     }
 
     initSystem();
 
-    // Reconnaissance vocale sécurisée
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
 
@@ -219,7 +219,6 @@
         startBtn.style.display = "none";
     }
 
-    // Gestion de l'envoi par clavier (secours infaillible)
     sendBtn.addEventListener('click', () => {
         const text = textInput.value.trim();
         if (text) {
@@ -294,9 +293,8 @@
 
             playCaroleSpeech(answer);
 
-        } q (err) {
-            // catch corrigé proprement
         } catch (err) {
+            console.error("Erreur Gemini :", err);
             statusText.style.color = "#ff5252";
             statusText.innerText = "Erreur de communication API.";
             chatHistory.pop();
