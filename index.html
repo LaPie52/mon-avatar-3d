@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Avatar 3D - Carole</title>
+    <title>Mon Avatar 3D - Carole & Gemini</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -56,8 +56,7 @@
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/modules/talkinghead.mjs",
-            "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm"
+            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/modules/talkinghead.mjs"
         }
     }
     </script>
@@ -78,10 +77,8 @@
 
 <script type="module">
     import { TalkingHead } from 'talkinghead';
-    import { CreateMLCEngine } from '@mlc-ai/web-llm';
 
     let head;
-    let mlcEngine;
     let femaleVoice = null;
     const container = document.getElementById('avatar-container');
     const startBtn = document.getElementById('startBtn');
@@ -89,8 +86,17 @@
     const userText = document.getElementById('userText');
     const geminiText = document.getElementById('geminiText');
 
-    // Prompt restructuré pour une logique et une structure de mémoire infaillibles
-    const systemPrompt = `Tu es Carole. 
+    // Récupération sécurisée de la clé stockée dans le navigateur (ou demande si absente)
+    let GEMINI_API_KEY = localStorage.getItem('carole_gemini_key');
+
+    if (!GEMINI_API_KEY) {
+        GEMINI_API_KEY = prompt("Entre ta clé API Google Gemini pour activer Carole :");
+        if (GEMINI_API_KEY) {
+            localStorage.setItem('carole_gemini_key', GEMINI_API_KEY.trim());
+        }
+    }
+
+    const systemInstruction = `Tu es Carole. 
     INFORMATIONS SUR TOI :
     - Née le 21 octobre 1972, d'origine vietnamienne, tu adores la nourriture asiatique.
     - Comptable chez Conforama depuis le 1er janvier 2000. Ta copine de boulot est Virginie.
@@ -99,14 +105,12 @@
     - Ta chienne s'appelle Cheyenne.
 
     RÈGLES STRICTES :
-    1. Parle TOUJOURS à Fredo sur un ton familier, amoureux, complice et naturel.
+    1. Parle TOUJOURS à Fredo sur un ton familier, amoureux, complice, naturel et chaleureux.
     2. Si tu ne connais pas la réponse à ce qu'il te demande, dis honnêtement : "Je ne sais pas, mon chéri".
     3. Retiens et mémorise toutes les informations ou consignes que Fredo te donne pendant la discussion pour t'en resservir ensuite.
-    4. Ne te prends jamais pour Fredo et ne réponds jamais à sa place.`;
+    4. Ne te prends jamais pour Fredo et ne réponds jamais à sa place. Fais des phrases fluides, vivantes et réalistes, sans jargon technique.`;
 
-    let chatHistory = [
-        { role: "system", content: systemPrompt }
-    ];
+    let chatHistory = [];
 
     function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
@@ -123,6 +127,12 @@
 
     async function initSystem() {
         try {
+            if (!GEMINI_API_KEY) {
+                statusText.style.color = "#ff5252";
+                statusText.innerText = "Erreur : Clé API manquante. Recharge la page.";
+                return;
+            }
+
             statusText.innerText = "Statut : Chargement de l'avatar 3D...";
             
             head = new TalkingHead(container, {
@@ -137,16 +147,8 @@
                 lipsyncLang: 'fr'
             });
 
-            statusText.innerText = "Statut : Téléchargement de Mistral-7B en local...";
-            
-            mlcEngine = await CreateMLCEngine("Mistral-7B-Instruct-v0.3-q4f16_1-MLC", {
-                initProgressCallback: (progress) => {
-                    statusText.innerText = `Statut : ${progress.text}`;
-                }
-            });
-
             statusText.style.color = "#00e676";
-            statusText.innerText = "Statut : Carole (Mistral) est prête !";
+            statusText.innerText = "Statut : Carole (Gemini) est prête !";
             startBtn.disabled = false;
             startBtn.innerText = "🎙️ Démarrer la conversation";
 
@@ -206,8 +208,8 @@
             
             try { recognition.stop(); } catch (e) {}
 
-            statusText.innerText = "Statut : 🧠 Mistral réfléchit...";
-            await queryMistral(transcript);
+            statusText.innerText = "Statut : 🧠 Gemini réfléchit...";
+            await queryGeminiAPI(transcript);
         };
         
         recognition.onerror = (event) => {
@@ -216,7 +218,7 @@
                     if (isConversationActive) {
                         try { recognition.start(); } catch (e) {}
                     }
-                }, 500);
+                }, 800);
             }
         };
 
@@ -248,7 +250,7 @@
             const utterance = new SpeechSynthesisUtterance(spokenAnswer);
             utterance.lang = 'fr-FR';
             utterance.pitch = 0.90; 
-            utterance.rate = 1.05;  
+            utterance.rate = 1.00;  
             
             if (femaleVoice) utterance.voice = femaleVoice;
 
@@ -257,8 +259,10 @@
                     statusText.style.color = "#ffab00";
                     statusText.innerText = "Statut : 🎙️ Carole écoute...";
                     setTimeout(() => {
-                        try { recognition.start(); } catch (e) {}
-                    }, 300);
+                        if (isConversationActive) {
+                            try { recognition.start(); } catch (e) {}
+                        }
+                    }, 800);
                 }
             };
             
@@ -266,27 +270,40 @@
         }
     }
 
-    async function queryMistral(prompt) {
+    async function queryGeminiAPI(prompt) {
         try {
-            chatHistory.push({ role: "user", content: prompt });
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
-            const response = await mlcEngine.chat.completions.create({
-                messages: chatHistory,
-                max_tokens: 75, // Augmenté à 75 pour permettre à Carole de terminer ses phrases proprement
-                temperature: 0.1, // Très bas pour garder une logique rigoureuse
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    system_instruction: {
+                        parts: [{ text: systemInstruction }]
+                    },
+                    contents: chatHistory,
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 150
+                    }
+                })
             });
 
-            let answer = response.choices[0].message.content;
+            const data = await response.json();
             
-            answer = answer.replace(/^(Fredo|Moi|Tu)\s*:.+?[.!?"']\s*/i, "").trim();
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
 
-            chatHistory.push({ role: "assistant", content: answer });
+            const answer = data.candidates[0].content.parts[0].text.trim();
+
+            chatHistory.push({ role: "model", parts: [{ text: answer }] });
 
             playCaroleSpeech(answer);
 
         } catch (err) {
             statusText.style.color = "#ff5252";
-            statusText.innerText = "Erreur Mistral : " + err.message;
+            statusText.innerText = "Erreur API Gemini : " + err.message;
             if (isConversationActive) {
                 setTimeout(() => { try { recognition.start(); } catch(e){} }, 3000);
             }
